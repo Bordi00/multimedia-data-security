@@ -9,7 +9,31 @@ import os
 from utility import wpsnr
 import cv2
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
+
+
+
+
+''' EXAMPLE USAGE
+
+import importlib
+import attacks
+
+# Reload the entire module, not the function
+importlib.reload(attacks)
+
+(history,_) = attacks.multiple_attacks(wm)   #INSERT YOUR EMBEDDED IMAGE HERE
+#print(history)
+stats = attacks.stats(history)               #compute the statistics
+print(stats['overall'])
+attacks.plot_stats(stats)                    #visualize the statics
+'''
+
+
+
+
+# Default List of attack functions
 attack_list = [
     lambda img: awgn(img, std_range=(1,10), seed=123),                                     # AWGN attack
     lambda img: blur(img,sigma_range =(1, 5)),                                             # Blur attack
@@ -19,6 +43,8 @@ attack_list = [
     lambda img: jpeg_compression(img, QF_range=(1,100)),                                   #JPEG compression attack
     #lambda img: (img,'None','None')                                                       # No attack (identity)
 ]
+
+
 
 """
     Function to apply multiple attacks to an image and return the best attack, and the history of all attacks.
@@ -51,12 +77,91 @@ def multiple_attacks(img,attack_functions=attack_list,times=3):
           'psnr': psnr,
           'wpsnr': w,
           'params': used_params}
-      history.setdefault(attack_name, []).append({'psnr': psnr, 'wpsnr': w, 'params': used_params})
+      history.setdefault(attack_name, []).append({'psnr': psnr, 'wpsnr': w, 'params': used_params, 'attacked_image': attacked})
 
   print(f'Best attack: {best_attack["attack_name"]}, PSNR: {best_attack["psnr"]}, WPSNR: {best_attack["wpsnr"]}, Params: {best_attack["params"]}')
   return history, best_attack
 
+def stats(history):
+    stats = {}
+    
+    for attack_name, results in history.items():
+        psnrs = [entry['psnr'] for entry in results]
+        wpsnrs = [entry['wpsnr'] for entry in results]
+        
+        # Calculate mean PSNR and wPSNR
+        mean_psnr = sum(psnrs) / len(psnrs)
+        mean_wpsnr = sum(wpsnrs) / len(wpsnrs)
+        
+        # Get best and worst wPSNR
+        best_wpsnr = max(wpsnrs)
+        worst_wpsnr = min(wpsnrs)
 
+        # Store the statistics for this attack
+        stats[attack_name] = {
+            'mean_psnr': mean_psnr,
+            'mean_wpsnr': mean_wpsnr,
+            'best_wpsnr': best_wpsnr,
+            'worst_wpsnr': worst_wpsnr
+        }
+    mean_psnr = sum([s['mean_psnr'] for s in stats.values()]) / len(stats)
+    mean_wpsnr = sum([s['mean_wpsnr'] for s in stats.values()]) / len(stats)
+    best_wpsnr = max([s['best_wpsnr'] for s in stats.values()])
+    worst_wpsnr = min([s['worst_wpsnr'] for s in stats.values()])
+      
+    stats["overall"] ={
+            'mean_psnr': mean_psnr,
+            'mean_wpsnr': mean_wpsnr,
+            'best_wpsnr': best_wpsnr,
+            'worst_wpsnr': worst_wpsnr
+        }
+
+      
+    
+    return stats
+
+def plot_stats(stats):
+    attack_names = list(stats.keys())
+    mean_psnrs = [s['mean_psnr'] for s in stats.values()]
+    mean_wpsnrs = [s['mean_wpsnr'] for s in stats.values()]
+    best_wpsnrs = [s['best_wpsnr'] for s in stats.values()]
+    worst_wpsnrs = [s['worst_wpsnr'] for s in stats.values()]
+
+    x = range(len(attack_names))  # X-axis locations
+
+    # Set up the bar plot
+    plt.figure(figsize=(15, 8))
+
+    # Plot mean PSNR
+    plt.subplot(2, 2, 1)
+    plt.bar(x, mean_psnrs, color='blue')
+    plt.xticks(x, attack_names, rotation=45)
+    plt.ylabel('Mean PSNR (dB)')
+    plt.title('Mean PSNR for Each Attack')
+
+    # Plot mean wPSNR
+    plt.subplot(2, 2, 2)
+    plt.bar(x, mean_wpsnrs, color='orange')
+    plt.xticks(x, attack_names, rotation=45)
+    plt.ylabel('Mean wPSNR (dB)')
+    plt.title('Mean wPSNR for Each Attack')
+
+    # Plot best wPSNR
+    plt.subplot(2, 2, 3)
+    plt.bar(x, best_wpsnrs, color='green')
+    plt.xticks(x, attack_names, rotation=45)
+    plt.ylabel('Best wPSNR (dB)')
+    plt.title('Best wPSNR for Each Attack')
+
+    # Plot worst wPSNR
+    plt.subplot(2, 2, 4)
+    plt.bar(x, worst_wpsnrs, color='red')
+    plt.xticks(x, attack_names, rotation=45)
+    plt.ylabel('Worst wPSNR (dB)')
+    plt.title('Worst wPSNR for Each Attack')
+
+    plt.tight_layout()  # Adjust subplots to fit into figure area.
+    plt.show()
 
 
 
