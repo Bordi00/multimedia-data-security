@@ -13,8 +13,8 @@ multimedia-data-security/
 |
 ├── ammhackaty.npy                 # Watermark
 |
-├── test_bordi.ipynb               # Contain the output of our notebook
-├── test_make.ipynb                # Contain input images sample
-├── test_tenko.ipynb               # Watermark
+├── test_bordi.ipynb               # Contain Bordi's pipeline
+├── test_make.ipynb                # Contain Marco's pipeline
+├── test_tenko.ipynb               # Contain Alessandro's pipeline
 └── README.md                      # Project documentation
 ```
