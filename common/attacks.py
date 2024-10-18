@@ -6,7 +6,7 @@ from scipy.signal import medfilt
 from skimage.transform import rescale
 from PIL import Image
 import os
-from common.utility import wpsnr
+from utility import wpsnr
 import cv2
 from tqdm import tqdm
 import matplotlib.pyplot as plt

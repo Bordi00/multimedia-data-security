@@ -1,6 +1,6 @@
 import numpy as np
 import pywt
-from common.utility import create_perceptual_mask,get_locations,modular_alpha
+from utility import create_perceptual_mask,get_locations,modular_alpha
 
 
 def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='multiplicative'):
