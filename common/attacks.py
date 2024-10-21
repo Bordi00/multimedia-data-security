@@ -16,9 +16,10 @@ import matplotlib.pyplot as plt
 
 
 ''' EXAMPLE USAGE
-
+import sys
+sys.path.append(os.path.join(os.getcwd(), 'common'))
 import importlib
-import attacks
+import attacks as attacks
 
 # Reload the entire module, not the function
 importlib.reload(attacks)

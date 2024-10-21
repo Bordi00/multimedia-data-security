@@ -31,7 +31,7 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
 
 
 
-def detection(image, watermarked, alpha, v='multiplicative'):
+def detection(image, watermarked, alpha, max_layer=2, v='multiplicative'):
     #ori_dct = dct(dct(image,axis=0, norm='ortho'),axis=1, norm='ortho')
     LL0_or, (LH0_or, HL0_or, HH0_or) = pywt.dwt2(image, 'haar')
     LL1_or, (LH1_or, HL1_or, HH1_or) = pywt.dwt2(LL0_or, 'haar')
@@ -52,6 +52,20 @@ def detection(image, watermarked, alpha, v='multiplicative'):
     # extracted_wms.append(extract_watermark(HL3_or, HL3_w, 3, 2, alpha=alpha, v=v))
     # extracted_wms.append(extract_watermark(HH3_or, HH3_w, 3, 1, alpha=alpha, v=v))
 
+    if max_layer == 2:
+        extracted_wms.append(extract_watermark(LH2_or, LH2_w, 2, 0, alpha=alpha, v=v))
+        extracted_wms.append(extract_watermark(HL2_or, HL2_w, 2, 2, alpha=alpha, v=v))
+        extracted_wms.append(extract_watermark(HH2_or, HH2_w, 2, 1, alpha=alpha, v=v))
+    if max_layer >= 1:
+        extracted_wms.append(extract_watermark(LH1_or, LH1_w, 1, 0, alpha=alpha, v=v))
+        extracted_wms.append(extract_watermark(HL1_or, HL1_w, 1, 2, alpha=alpha, v=v))
+        extracted_wms.append(extract_watermark(HH1_or, HH1_w, 1, 1, alpha=alpha, v=v))
+
+    extracted_wms.append(extract_watermark(LH0_or, LH0_w, 0, 0, alpha=alpha, v=v))
+    extracted_wms.append(extract_watermark(HL0_or, HL0_w, 0, 2, alpha=alpha, v=v))
+    extracted_wms.append(extract_watermark(HH0_or, HH0_w, 0, 1, alpha=alpha, v=v))
+
+    return extracted_wms
 
 def similarity(X,X_star):
     #Computes the similarity measure between the original and the new watermarks.

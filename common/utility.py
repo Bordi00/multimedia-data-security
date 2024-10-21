@@ -42,9 +42,10 @@ def visualize_images_with_desc(images, titles, figsize=(15, 6)):
 def create_perceptual_mask(subband):
 
     mask = np.ones(subband.shape)
-    mask *= compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband)
+    mask +=  compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband) + 1
     
     return mask
+
 
 def compute_brightness_sensitivity(subband):
 
