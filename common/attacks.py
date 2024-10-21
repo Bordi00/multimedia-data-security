@@ -45,7 +45,10 @@ attack_list = [
     #lambda img: (img,'None','None')                                                       # No attack (identity)
 ]
 
-
+def mergeMultipleHistory(first,second):
+  for attack_name, results in first.items():
+    second[attack_name].extend(results)
+  return second
 
 """
     Function to apply multiple attacks to an image and return the best attack, and the history of all attacks.
