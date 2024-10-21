@@ -10,7 +10,7 @@ from utility import wpsnr
 import cv2
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
+from detection import detection, similarity
 
 
 
@@ -36,12 +36,12 @@ attacks.plot_stats(stats)                    #visualize the statics
 
 # Default List of attack functions
 attack_list = [
-    lambda img: awgn(img, std_range=(1,10), seed=123),                                     # AWGN attack
-    lambda img: blur(img,sigma_range =(1, 5)),                                             # Blur attack
-    lambda img: sharpening(img, sigma_range=(1,5), alpha_range=(1,5)),                     # Sharpening attack
-    lambda img: median(img, kernel_size_w_range=[3,5,7], kernel_size_h_range=[3,5,7]),     # Median attack
-    lambda img: resizing(img, scale_range = (0.3,1)),                                      # Resizing attack
-    lambda img: jpeg_compression(img, QF_range=(1,100)),                                   #JPEG compression attack
+    lambda img: awgn(img, std=random.randint(1,10), seed=123),                                     # AWGN attack
+    lambda img: blur(img,sigma=random.randint(1, 5)),                                             # Blur attack
+    lambda img: sharpening(img, sigma=random.randint(1,5), alpha=random.randint(1,5)),                     # Sharpening attack
+    lambda img: median(img, kernel_size_w=random.choice([3,5,7]), kernel_size_h=random.choice([3,5,7])),     # Median attack
+    lambda img: resizing(img, scale = random.uniform(0.3,1)),                                      # Resizing attack
+    lambda img: jpeg_compression(img, QF=random.randint(1,100)),                                   #JPEG compression attack
     #lambda img: (img,'None','None')                                                       # No attack (identity)
 ]
 
@@ -56,7 +56,7 @@ def mergeMultipleHistory(first,second):
     attack_functions: list of attack functions
     times: number of times to apply each attack
 """
-def multiple_attacks(img,attack_functions=attack_list,times=3): 
+def multiple_attacks(img,attack_functions=attack_list,times=3,alpha=0.8,mark=None): 
   # List of all attack functions
   
   max_wpsnr = -1
@@ -81,14 +81,32 @@ def multiple_attacks(img,attack_functions=attack_list,times=3):
           'psnr': psnr,
           'wpsnr': w,
           'params': used_params}
-      history.setdefault(attack_name, []).append({'psnr': psnr, 'wpsnr': w, 'params': used_params, 'attacked_image': attacked})
+      
+      #Detect the watermark
+      # w_ex = detection(img, attacked, alpha)
+      
+      # # for w  un
+
+      # #Compute the similarity and threshold
+      # sim = similarity(mark, w_ex)
+      # T = 0.7#compute_thr(sim, N, mark)
+      # lost = False
+      # if sim > T:
+      #     print('Mark has been found. SIM = %f' % sim)
+      #     lost = False
+      # else:
+      #     print('Mark has been lost. SIM = %f' % sim)
+      #     lost = True
+          
+      history.setdefault(attack_name, []).append({'psnr': psnr, 'wpsnr': w, 'params': used_params, 'attacked_image': attacked})#'lost': lost,'similarity': sim
 
   print(f'Best attack: {best_attack["attack_name"]}, PSNR: {best_attack["psnr"]}, WPSNR: {best_attack["wpsnr"]}, Params: {best_attack["params"]}')
   return history, best_attack
 
 def stats(history):
     stats = {}
-    
+    lost= 0
+    total_lost = 0
     for attack_name, results in history.items():
         psnrs = [entry['psnr'] for entry in results]
         wpsnrs = [entry['wpsnr'] for entry in results]
@@ -100,24 +118,29 @@ def stats(history):
         # Get best and worst wPSNR
         best_wpsnr = max(wpsnrs)
         worst_wpsnr = min(wpsnrs)
-
+        lost += sum([entry['lost'] for entry in results])
         # Store the statistics for this attack
         stats[attack_name] = {
             'mean_psnr': mean_psnr,
             'mean_wpsnr': mean_wpsnr,
             'best_wpsnr': best_wpsnr,
-            'worst_wpsnr': worst_wpsnr
+            'worst_wpsnr': worst_wpsnr,
+            'lost': lost
         }
+        total_lost += lost
+        lost = 0
     mean_psnr = sum([s['mean_psnr'] for s in stats.values()]) / len(stats)
     mean_wpsnr = sum([s['mean_wpsnr'] for s in stats.values()]) / len(stats)
     best_wpsnr = max([s['best_wpsnr'] for s in stats.values()])
     worst_wpsnr = min([s['worst_wpsnr'] for s in stats.values()])
+    total_lost = total_lost
       
     stats["overall"] ={
             'mean_psnr': mean_psnr,
             'mean_wpsnr': mean_wpsnr,
             'best_wpsnr': best_wpsnr,
-            'worst_wpsnr': worst_wpsnr
+            'worst_wpsnr': worst_wpsnr,
+            'total_lost': total_lost
         }
 
       
@@ -169,48 +192,70 @@ def plot_stats(stats):
 
 
 
-
-
-
-
 ##########################################   ATTACKS   ##########################################
-def awgn(img, std_range, seed):
+
+# attacked_image = attacks("path_to_image.jpg", "AWGN", [std])
+# attacked_image = attacks("path_to_image.jpg", "Blur", [sigma])
+# attacked_image = attacks("path_to_image.jpg", "Sharpening", [sigma, alpha])
+# attacked_image = attacks("path_to_image.jpg", "Median", [kernel_size_w, kernel_size_h])
+# attacked_image = attacks("path_to_image.jpg", "Resizing", [scale])
+# attacked_image = attacks("path_to_image.jpg", "JPEG Compression", [QF])
+
+def attacks(image_path, attack_name, param_array):
+
+  img = cv2.imread(image_path, 0)
+  if attack_name == 'AWGN':
+    return awgn(img, param_array[0], seed=123)[0]
+  elif attack_name == 'Blur':
+    return blur(img, param_array[0])[0]
+  elif attack_name == 'Sharpening':
+    return sharpening(img, param_array[0], param_array[1])[0]
+  elif attack_name == 'Median':
+    return median(img, param_array[0], param_array[1])[0]
+  elif attack_name == 'Resizing':
+    return resizing(img, param_array[0])[0]
+  elif attack_name == 'JPEG Compression':
+    return jpeg_compression(img, param_array[0])[0]
+  else:
+    return img
+
+
+
+def awgn(img, std, seed):
   mean = 0.0   # some constant
-  std = random.randint(std_range[0], std_range[1])
+  std = std
   #np.random.seed(seed)
   attacked = img + np.random.normal(mean, std, img.shape)
   attacked = np.clip(attacked, 0, 255)
   attacked = np.asarray(attacked,dtype=np.uint8)
   return (attacked, 'AWGN',"std: "+str(std))
 
-def blur(img, sigma_range):
+def blur(img, sigma):
  
-  sigma = random.randint(sigma_range[0], sigma_range[1])
+  sigma = sigma
   attacked = gaussian_filter(img, [sigma,sigma])
   return (attacked, 'Blur', "sigma: "+str(sigma))
 
-def sharpening(img, sigma_range, alpha_range):
+def sharpening(img, sigma, alpha):
 
-  sigma = random.randint(sigma_range[0], sigma_range[1])
-  alpha = random.randint(alpha_range[0], alpha_range[1])
+  sigma = sigma
+  alpha = alpha
   #print(img/255)
   filter_blurred_f = gaussian_filter(img, sigma)
 
   attacked = img + alpha * (img - filter_blurred_f)
   return ( attacked, 'Sharpening', "sigma: "+str(sigma) + " alpha: "+str(alpha))
 
-def median(img, kernel_size_w_range, kernel_size_h_range):
+def median(img, kernel_size_w, kernel_size_h):
 
-  k_w  = random.randint(0,len(kernel_size_w_range)-1)
-  k_h  = random.randint(0,len(kernel_size_h_range)-1)
-  kernel_size = [kernel_size_w_range[k_w], kernel_size_h_range[k_h]]
+  kernel_size = [kernel_size_w, kernel_size_h]
   attacked = medfilt(img, kernel_size)
   return (attacked, 'Median', "kernel_size: "+str(kernel_size))
 
-def resizing(img, scale_range):
+def resizing(img, scale):
   
   x, y = img.shape
-  scale = random.uniform(scale_range[0], scale_range[1])
+  scale = scale
   attacked = rescale(img, scale)
   attacked = rescale(attacked, 1/scale)
   attacked = np.asarray(attacked,dtype=np.uint8)
@@ -219,9 +264,9 @@ def resizing(img, scale_range):
 
   return (attacked, 'Resizing', "scale: "+str(scale))
 
-def jpeg_compression(img, QF_range):
+def jpeg_compression(img, QF):
   img = Image.fromarray(img)
-  QF = random.randint(QF_range[0], QF_range[1])
+  QF = QF
   img.save('tmp.jpg',"JPEG", quality=QF)
   attacked = Image.open('tmp.jpg')
   attacked = np.asarray(attacked,dtype=np.uint8)
