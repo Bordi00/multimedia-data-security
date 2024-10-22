@@ -1,6 +1,6 @@
 import numpy as np
 import pywt
-from utility import create_perceptual_mask,get_locations,modular_alpha
+from utility import create_perceptual_mask, get_locations, modular_alpha
 
 
 def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='multiplicative'):
@@ -10,8 +10,8 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
     abs_watermarked, _, _ = get_locations(watermarked_subband)
     mark_size = 1024
 
-    extracted_mark = []
-    
+    extracted_mark = np.zeros(mark_size, dtype=np.float64)
+
     # Loop through each location (except the first one)
     for idx, loc in enumerate(locations[1:mark_size+1]):
         x = locations[idx][0]
@@ -19,38 +19,27 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
         
         if v == 'additive':
             # Reverse the additive watermarking process to extract the mark
-            extracted_value = (abs_watermarked[loc] - abs_subband[loc]) / (modular_alpha(layer, theta, alpha) * mask[x][y] + 1e-6)
+            extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / (modular_alpha(layer, theta, alpha) * mask[x][y])
         elif v == 'multiplicative':
             # Reverse the multiplicative watermarking process to extract the mark
-            extracted_value = ((abs_watermarked[loc] / abs_subband[loc]) - 1 + 1e-6) / (modular_alpha(layer, theta, alpha) * mask[x][y] + 1e-6)
+            extracted_mark[idx] = ((watermarked_subband[loc] / subband[loc]) - 1) / (modular_alpha(layer, theta, alpha) * mask[x][y])
+
         
-        # Append the extracted mark value
-        extracted_mark.append(extracted_value)
-    
-    return np.array(extracted_mark)
+    return  np.clip(extracted_mark, 0, 1).astype(np.uint8)
 
-
-
-def detection(image, watermarked, alpha, max_layer=2, v='multiplicative'):
+def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
     #ori_dct = dct(dct(image,axis=0, norm='ortho'),axis=1, norm='ortho')
     LL0_or, (LH0_or, HL0_or, HH0_or) = pywt.dwt2(image, 'haar')
     LL1_or, (LH1_or, HL1_or, HH1_or) = pywt.dwt2(LL0_or, 'haar')
     LL2_or, (LH2_or, HL2_or, HH2_or) = pywt.dwt2(LL1_or, 'haar')
-    LL3_or, (LH3_or, HL3_or, HH3_or) = pywt.dwt2(LL2_or, 'haar')
      
 
     #wat_dct = dct(dct(watermarked,axis=0, norm='ortho'),axis=1, norm='ortho')
     LL0_w, (LH0_w, HL0_w, HH0_w) = pywt.dwt2(watermarked, 'haar')
     LL1_w, (LH1_w, HL1_w, HH1_w) = pywt.dwt2(LL0_w, 'haar')
     LL2_w, (LH2_w, HL2_w, HH2_w) = pywt.dwt2(LL1_w, 'haar')
-    LL3_w, (LH3_w, HL3_w, HH3_w) = pywt.dwt2(LL2_w, 'haar')
     
     extracted_wms = []
-    # we cant embed in the layer 3 because size is 1023 and not 1024
-
-    # extracted_wms.append(extract_watermark(LH3_or, LH3_w, 3, 0, alpha=alpha, v=v))
-    # extracted_wms.append(extract_watermark(HL3_or, HL3_w, 3, 2, alpha=alpha, v=v))
-    # extracted_wms.append(extract_watermark(HH3_or, HH3_w, 3, 1, alpha=alpha, v=v))
 
     if max_layer == 2:
         extracted_wms.append(extract_watermark(LH2_or, LH2_w, 2, 0, alpha=alpha, v=v))
@@ -64,6 +53,37 @@ def detection(image, watermarked, alpha, max_layer=2, v='multiplicative'):
     extracted_wms.append(extract_watermark(LH0_or, LH0_w, 0, 0, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HL0_or, HL0_w, 0, 2, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HH0_or, HH0_w, 0, 1, alpha=alpha, v=v))
+
+    return extracted_wms
+
+def detection(original, watermarked, attacked, alpha, max_layer):
+    w_ex = detect_wm(original, watermarked, alpha, max_layer=max_layer)
+    w_ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
+    thr = 0.7045
+    sim = []
+
+
+    ex_mark = np.zeros(1024, dtype=np.uint8)
+    for j in range(1024):
+        s = 0
+        for i in range(len(w_ex)):
+            s += w_ex[i][j]
+        if s >= 5:
+            ex_mark[j] = 1
+        else:
+            ex_mark[j] = 0
+        
+    for w in w_ex_attacked:
+        x = similarity(w, ex_mark)
+        sim.append(x)
+    
+    sim = max(sim)
+
+    if sim >= thr:
+        return 1
+    return 0
+
+
 
     return extracted_wms
 
