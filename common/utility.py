@@ -3,6 +3,7 @@ from scipy.signal import convolve2d
 from math import sqrt
 import matplotlib.pyplot as plt
 import cv2
+
 def wpsnr(img1, img2):
   img1 = np.float32(img1)/255.0
   img2 = np.float32(img2)/255.0
@@ -34,18 +35,13 @@ def visualize_images_with_desc(images, titles, figsize=(15, 6)):
     # Show the plot
     plt.tight_layout()  # Adjust the layout
     plt.show()
-    
-
-
-
 
 def create_perceptual_mask(subband):
 
     mask = np.ones(subband.shape)
-    mask +=  compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband) + 1
+    mask +=  compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband)
     
     return mask
-
 
 def compute_brightness_sensitivity(subband):
 
