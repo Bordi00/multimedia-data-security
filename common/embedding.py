@@ -1,16 +1,22 @@
 from utility import create_perceptual_mask, get_locations, modular_alpha
 import pywt
 
-def embedding(image, mark, alpha, max_layer=2, v='multiplicative'):
-    # Initial wavelet decomposition
-    coeffs = pywt.dwt2(image, 'haar')
-    
-    # Start recursive embedding from layer 0
-    watermarked_image = recursive_embedding(coeffs, mark, alpha, layer=0, max_layer=max_layer, v=v)
-    
-    return watermarked_image
 
+def embed_watermark(subband, mark, layer, theta, alpha=0.5, v='multiplicative'):
 
+    mask = create_perceptual_mask(subband)
+    abs_subband, sign, locations = get_locations(subband) 
+
+    watermarked = abs_subband.copy()
+    for idx, (loc, mark_val) in enumerate(zip(locations[1:], mark)):
+        x = locations[idx][0]
+        y = locations[idx][1]
+        if v == 'additive':
+            watermarked[loc] += (modular_alpha(layer, theta, alpha) * mark_val * mask[x][y])
+        elif v == 'multiplicative':
+            watermarked[loc] *= 1 + (modular_alpha(layer, theta, alpha) * mark_val * mask[x][y])
+    
+    return sign * watermarked
 
 def recursive_embedding(coeffs, mark, alpha, layer, max_layer, v='multiplicative'):
     LL, (LH, HL, HH) = coeffs
@@ -38,19 +44,10 @@ def recursive_embedding(coeffs, mark, alpha, layer, max_layer, v='multiplicative
     return watermarked
 
 
-
-def embed_watermark(subband, mark, layer, theta, alpha=0.5, v='multiplicative'):
-
-    mask = create_perceptual_mask(subband)
-    abs_subband, sign, locations = get_locations(subband) 
-
-    watermarked = abs_subband.copy()
-    for idx, (loc, mark_val) in enumerate(zip(locations[1:], mark)):
-        x = locations[idx][0]
-        y = locations[idx][1]
-        if v == 'additive':
-            watermarked[loc] += (modular_alpha(layer, theta, alpha) * mark_val * mask[x][y])
-        elif v == 'multiplicative':
-            watermarked[loc] *= (1 + (modular_alpha(layer, theta, alpha) * mark_val * mask[x][y]))
+def embedding(image, mark, alpha, max_layer=2, v='multiplicative'):
+    # Initial wavelet decomposition
+    coeffs = pywt.dwt2(image, 'haar')
+    # Start recursive embedding from layer 0
+    watermarked_image = recursive_embedding(coeffs, mark, alpha, layer=0, max_layer=max_layer, v=v)
     
-    return sign * watermarked
+    return watermarked_image
