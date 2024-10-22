@@ -6,6 +6,7 @@ from scipy.signal import medfilt
 from skimage.transform import rescale
 from PIL import Image
 import os
+import pywt
 from utility import wpsnr
 import cv2
 from tqdm import tqdm
@@ -33,8 +34,10 @@ attacks.plot_stats(stats)                    #visualize the statics
 
 
 
+prova = [
+    lambda img: apply_median_to_dwt(img,kernel_size_w=random.choice([3,5,7]), kernel_size_h=random.choice([3,5,7]))  
+]
 
-# Default List of attack functions
 attack_list = [
     lambda img: awgn(img, std=random.randint(1,10), seed=123),                                     # AWGN attack
     lambda img: blur(img,sigma=random.randint(1, 5)),                                             # Blur attack
@@ -42,8 +45,14 @@ attack_list = [
     lambda img: median(img, kernel_size_w=random.choice([3,5,7]), kernel_size_h=random.choice([3,5,7])),     # Median attack
     lambda img: resizing(img, scale = random.uniform(0.3,1)),                                      # Resizing attack
     lambda img: jpeg_compression(img, QF=random.randint(1,100)),                                   #JPEG compression attack
+    lambda img: apply_gaussian_blur_to_dwt(img,random.randint(1,5) )  
     #lambda img: (img,'None','None')                                                       # No attack (identity)
 ]
+
+# Default List of attack functions
+def random_attack_list():
+  return attack_list
+
 
 def mergeMultipleHistory(first,second):
   for attack_name, results in first.items():
@@ -118,22 +127,22 @@ def stats(history):
         # Get best and worst wPSNR
         best_wpsnr = max(wpsnrs)
         worst_wpsnr = min(wpsnrs)
-        lost += sum([entry['lost'] for entry in results])
+        #lost += sum([entry['lost'] for entry in results])
         # Store the statistics for this attack
         stats[attack_name] = {
             'mean_psnr': mean_psnr,
             'mean_wpsnr': mean_wpsnr,
             'best_wpsnr': best_wpsnr,
             'worst_wpsnr': worst_wpsnr,
-            'lost': lost
+            #'lost': lost
         }
-        total_lost += lost
-        lost = 0
+        # total_lost += lost
+        # lost = 0
     mean_psnr = sum([s['mean_psnr'] for s in stats.values()]) / len(stats)
     mean_wpsnr = sum([s['mean_wpsnr'] for s in stats.values()]) / len(stats)
     best_wpsnr = max([s['best_wpsnr'] for s in stats.values()])
     worst_wpsnr = min([s['worst_wpsnr'] for s in stats.values()])
-    total_lost = total_lost
+    #total_lost = total_lost
       
     stats["overall"] ={
             'mean_psnr': mean_psnr,
@@ -258,8 +267,10 @@ def resizing(img, scale):
   scale = scale
   attacked = rescale(img, scale)
   attacked = rescale(attacked, 1/scale)
-  attacked = np.asarray(attacked,dtype=np.uint8)
+  #attacked = np.asarray(attacked,dtype=np.uint8)
   attacked = cv2.resize(attacked, (y, x))
+  # print(attacked.shape)
+  # print(scale)
   attacked = attacked[:x, :y]
 
   return (attacked, 'Resizing', "scale: "+str(scale))
@@ -267,9 +278,68 @@ def resizing(img, scale):
 def jpeg_compression(img, QF):
   img = Image.fromarray(img)
   QF = QF
+  img = img.convert('L')
   img.save('tmp.jpg',"JPEG", quality=QF)
   attacked = Image.open('tmp.jpg')
   attacked = np.asarray(attacked,dtype=np.uint8)
   os.remove('tmp.jpg')
 
   return (attacked, 'JPEG Compression', "QF: "+str(QF))
+
+
+def apply_gaussian_blur_to_dwt(image, sigma=1):
+    # Step 1: Perform 2D DWT
+    coeffs2 = pywt.dwt2(image, 'haar')  # Using Haar wavelet for simplicity
+    LL, (LH, HL, HH) = coeffs2
+
+    # Step 2: Apply Gaussian blur to LH, HL, and HH components
+    LH_blurred = gaussian_filter(LH, sigma=sigma)
+    HL_blurred = gaussian_filter(HL, sigma=sigma)
+    HH_blurred = gaussian_filter(HH, sigma=sigma)
+
+    # Step 3: Reconstruct the image using the blurred coefficients
+    coeffs2_blurred = (LL, (LH_blurred, HL_blurred, HH_blurred))
+    reconstructed_image = pywt.idwt2(coeffs2_blurred, 'haar')
+
+    # Ensure pixel values are within valid range
+    reconstructed_image = np.clip(reconstructed_image, 0, 255)
+
+    return (reconstructed_image.astype(np.uint8),'DWT_GAUSS', "sigma: "+str(sigma))
+
+def apply_gaussian_blur_to_dwt2(image, sigma=1):
+    # Step 1: Perform 2D DWT
+    coeffs2 = pywt.dwt2(image, 'haar')  # Using Haar wavelet for simplicity
+    LL, (LH, HL, HH) = coeffs2
+
+    # Step 2: Apply Gaussian blur to LH, HL, and HH components
+    HL_blurred = gaussian_filter(HL, sigma=sigma)
+    HH_blurred = gaussian_filter(HH, sigma=sigma)
+
+    # Step 3: Reconstruct the image using the blurred coefficients
+    coeffs2_blurred = (LL, (LH, HL_blurred, HH_blurred))
+    reconstructed_image = pywt.idwt2(coeffs2_blurred, 'haar')
+
+    # Ensure pixel values are within valid range
+    reconstructed_image = np.clip(reconstructed_image, 0, 255)
+
+    return (reconstructed_image.astype(np.uint8),'DWT_GAUSS2', "sigma: "+str(sigma))
+
+
+def apply_median_to_dwt(image, kernel_size_w, kernel_size_h):
+    # Step 1: Perform 2D DWT
+    coeffs2 = pywt.dwt2(image, 'haar')  # Using Haar wavelet for simplicity
+    LL, (LH, HL, HH) = coeffs2
+
+    # Step 2: Apply Gaussian blur to LH, HL, and HH components
+    LH_blurred = medfilt(LH, [kernel_size_w, kernel_size_h])
+    HL_blurred = medfilt(HL, [kernel_size_w, kernel_size_h])
+    HH_blurred = medfilt(HH, [kernel_size_w, kernel_size_h])
+
+    # Step 3: Reconstruct the image using the blurred coefficients
+    coeffs2_blurred = (LL, (LH_blurred, HL_blurred, HH_blurred))
+    reconstructed_image = pywt.idwt2(coeffs2_blurred, 'haar')
+
+    # Ensure pixel values are within valid range
+    reconstructed_image = np.clip(reconstructed_image, 0, 255)
+
+    return (reconstructed_image.astype(np.uint8),'DWT_MEIDAN',"kernel_size: "+str([kernel_size_w,kernel_size_h]))
