@@ -22,7 +22,7 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
             extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / (modular_alpha(layer, theta, alpha) * mask[x][y])
         elif v == 'multiplicative':
             # Reverse the multiplicative watermarking process to extract the mark
-            extracted_mark[idx] = ((watermarked_subband[loc] / subband[loc]) - 1) / (modular_alpha(layer, theta, alpha) * mask[x][y])
+            extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / modular_alpha(layer, theta, alpha) * mask[x][y] * subband[loc]
 
         
     return  np.clip(extracted_mark, 0, 1).astype(np.uint8)
@@ -61,8 +61,7 @@ def detection(original, watermarked, attacked, alpha, max_layer):
     w_ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
     thr = 0.7045
     sim = []
-
-
+    
     ex_mark = np.zeros(1024, dtype=np.uint8)
     for j in range(1024):
         s = 0
