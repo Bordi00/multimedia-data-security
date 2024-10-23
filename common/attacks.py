@@ -11,7 +11,6 @@ from utility import wpsnr
 import cv2
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from detection import detection, similarity
 
 
 
@@ -35,18 +34,84 @@ attacks.plot_stats(stats)                    #visualize the statics
 
 
 prova = [
-    lambda img: apply_median_to_dwt(img,kernel_size_w=random.choice([3,5,7]), kernel_size_h=random.choice([3,5,7]))  
+    lambda img: apply_median_to_dwt(img,kernel_size_w=random.choice([3,5,7,9,11]), kernel_size_h=random.choice([3,5,7,9,11]))  
 ]
 
 attack_list = [
-    lambda img: awgn(img, std=random.randint(1,10), seed=123),                                     # AWGN attack
-    lambda img: blur(img,sigma=random.randint(1, 5)),                                             # Blur attack
-    lambda img: sharpening(img, sigma=random.randint(1,5), alpha=random.randint(1,5)),                     # Sharpening attack
-    lambda img: median(img, kernel_size_w=random.choice([3,5,7]), kernel_size_h=random.choice([3,5,7])),     # Median attack
+    lambda img: awgn(img, std=random.randint(10,100), seed=123),                                            # AWGN attack
+    lambda img: blur(img,sigma=random.randint(1, 40)),                                                      # Blur attack
+    lambda img: sharpening(img, sigma=random.randint(1,30), alpha=random.randint(1,30)),                    # Sharpening attack
+    lambda img: median(img, kernel_size_w=random.choice([3,5,7,9,11]), kernel_size_h=random.choice([3,5,7,9,11])),     # Median attack
     lambda img: resizing(img, scale = random.uniform(0.3,1)),                                      # Resizing attack
     lambda img: jpeg_compression(img, QF=random.randint(1,100)),                                   #JPEG compression attack
-    lambda img: apply_gaussian_blur_to_dwt(img,random.randint(1,5) )  
+    lambda img: apply_gaussian_blur_to_dwt(img,random.randint(1,20) )  ,
+    lambda img: apply_median_to_dwt(img,kernel_size_w=random.choice([3,5,7,9,11]), kernel_size_h=random.choice([3,5,7,9,11]))
     #lambda img: (img,'None','None')                                                       # No attack (identity)
+]
+
+attack_list2 = [
+    lambda img,p: awgn(img, std=p, seed=123),                                            # AWGN attack
+    lambda img,p: blur(img,sigma=p),                                                      # Blur attack
+    lambda img,p: sharpening(img, sigma=p, alpha=p),                    # Sharpening attack
+    lambda img,p: median(img, kernel_size_w=p, kernel_size_h=p),     # Median attack
+    lambda img,p: resizing(img, scale = p),                                      # Resizing attack
+    lambda img,p: jpeg_compression(img, QF=p),                                   #JPEG compression attack
+    lambda img,p: apply_gaussian_blur_to_dwt(img,p )  ,
+    lambda img,p: apply_median_to_dwt(img,kernel_size_w=p, kernel_size_h=p)
+    #lambda img: (img,'None','None')                                                       # No attack (identity)
+]
+
+attack_incremental_paramters = [
+  {
+    'start':20,
+    'increment_params' : 5 , 
+    'end': 100,
+    'function': lambda img,p: awgn(img, std=p, seed=123),  
+  },
+  {
+      'start':0,
+      'increment_params' : 1 ,  
+      'end': 5,
+      'function': lambda img,p: blur(img,sigma=p), 
+  },
+ {
+      'start':0,
+      'increment_params' : 0.5 ,  
+      'end': 5,
+      'function': lambda img,p: sharpening(img, sigma=p, alpha=p), 
+      },
+   {
+      'start':3,
+      'increment_params' : 2 ,  
+      'end': 100,
+      'function': lambda img,p: median(img, kernel_size_w=p, kernel_size_h=p), 
+      },
+   {
+      'start':0.3,
+      'increment_params' : 0.1 ,  
+      'end': 1,
+      'function': lambda img,p: resizing(img, scale = p),  
+      },
+  {
+      'start':0,
+      'increment_params' : 5 , 
+      'end': 100 ,
+      'function': lambda img,p: jpeg_compression(img, QF= (100-p)),  
+      },
+  {
+      'start':1,
+      'increment_params' : 5 ,  
+      'end': 30,
+      'function': lambda img,p: apply_gaussian_blur_to_dwt(img,p ) ,   
+      },
+  {
+      'start':3,
+      'increment_params' : 2 , 
+      'end': 11,
+      'function': lambda img,p: apply_median_to_dwt(img,kernel_size_w=p, kernel_size_h=p),    
+      }
+    
+
 ]
 
 # Default List of attack functions
@@ -262,16 +327,11 @@ def median(img, kernel_size_w, kernel_size_h):
   return (attacked, 'Median', "kernel_size: "+str(kernel_size))
 
 def resizing(img, scale):
-  
   x, y = img.shape
-  scale = scale
-  attacked = rescale(img, scale)
-  attacked = rescale(attacked, 1/scale)
-  #attacked = np.asarray(attacked,dtype=np.uint8)
-  attacked = cv2.resize(attacked, (y, x))
-  # print(attacked.shape)
-  # print(scale)
-  attacked = attacked[:x, :y]
+  attacked = rescale(img, scale, anti_aliasing=True, mode='reflect')
+  attacked = rescale(attacked, 1/scale, anti_aliasing=True, mode='reflect')
+  attacked = np.asarray(attacked * 255, dtype=np.uint8)
+  attacked = cv2.resize(attacked, (y, x), interpolation=cv2.INTER_LINEAR)
 
   return (attacked, 'Resizing', "scale: "+str(scale))
 
