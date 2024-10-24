@@ -61,17 +61,9 @@ def detection(original, watermarked, attacked, alpha, max_layer):
     w_ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
     thr = 0.7045
     sim = []
+
+    ex_mark = w_ex[0]
     
-    ex_mark = np.zeros(1024, dtype=np.uint8)
-    for j in range(1024):
-        s = 0
-        for i in range(len(w_ex)):
-            s += w_ex[i][j]
-        if s >= 5:
-            ex_mark[j] = 1
-        else:
-            ex_mark[j] = 0
-        
     for w in w_ex_attacked:
         x = similarity(w, ex_mark)
         sim.append(x)
