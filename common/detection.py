@@ -22,12 +22,9 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
             extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / (modular_alpha(layer, theta, alpha) * mask[x][y])
         elif v == 'multiplicative':
             # Reverse the multiplicative watermarking process to extract the mark
-            # extracted_mark[idx] = ((watermarked_subband[loc] / subband[loc]) - 1) / (modular_alpha(layer, theta, alpha) * mask[x][y])
-            extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / modular_alpha(layer, theta, alpha) * mask[x][y] * subband[loc]
-
-
+            extracted_mark[idx] = (watermarked_subband[loc] - subband[loc]) / (modular_alpha(layer, theta, alpha) * mask[x][y] * subband[loc])
         
-    return  np.clip(extracted_mark, 0, 1).astype(np.uint8)
+    return np.clip(extracted_mark, 0, 1)
 
 def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
     #ori_dct = dct(dct(image,axis=0, norm='ortho'),axis=1, norm='ortho')
@@ -42,43 +39,49 @@ def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
     LL2_w, (LH2_w, HL2_w, HH2_w) = pywt.dwt2(LL1_w, 'haar')
     
     extracted_wms = []
-
+    w_ex = []
     if max_layer == 2:
         extracted_wms.append(extract_watermark(LH2_or, LH2_w, 2, 0, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HL2_or, HL2_w, 2, 2, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HH2_or, HH2_w, 2, 1, alpha=alpha, v=v))
+        w_ex.append(sum(extracted_wms) / len(extracted_wms))
+
     if max_layer >= 1:
         extracted_wms.append(extract_watermark(LH1_or, LH1_w, 1, 0, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HL1_or, HL1_w, 1, 2, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HH1_or, HH1_w, 1, 1, alpha=alpha, v=v))
+        w_ex.append(sum(extracted_wms) / len(extracted_wms))
+
 
     extracted_wms.append(extract_watermark(LH0_or, LH0_w, 0, 0, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HL0_or, HL0_w, 0, 2, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HH0_or, HH0_w, 0, 1, alpha=alpha, v=v))
+    w_ex.append(sum(extracted_wms) / len(extracted_wms))
 
-    return extracted_wms
+
+    return w_ex
 
 def detection(original, watermarked, attacked, alpha, max_layer):
-    w_ex = detect_wm(original, watermarked, alpha, max_layer=max_layer)
-    w_ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
+    ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer)
+    ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
     thr = 0.7045
     sim = []
-    
-    ex_mark = w_ex[0]
-    
-    for w in w_ex_attacked:
-        x = similarity(w, ex_mark)
-        sim.append(x)
-    
+    for w in ex_attacked:
+        sim.append(similarity(ex_mark[0], w))
     sim = max(sim)
-
     if sim >= thr:
         return 1
     return 0
 
-def similarity(X,X_star):
-    #Computes the similarity measure between the original and the new watermarks.
-    s = np.sum(np.multiply(X, X_star)) / (np.sqrt(np.sum(np.multiply(X, X))) * np.sqrt(np.sum(np.multiply(X_star, X_star))))
+def similarity(X, X_star):
+    # Computes the similarity measure between the original and the new watermarks.
+    norm_X = np.sqrt(np.sum(np.multiply(X, X)))
+    norm_X_star = np.sqrt(np.sum(np.multiply(X_star, X_star)))
+
+    if norm_X == 0 or norm_X_star == 0:
+        return 0.0  # or return 0 or another appropriate value
+
+    s = np.sum(np.multiply(X, X_star)) / (norm_X * norm_X_star)
     return s
 
 def compute_thr(sim, mark, mark_size=1024, N=1000):
