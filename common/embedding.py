@@ -1,7 +1,6 @@
 from utility import create_perceptual_mask, get_locations, modular_alpha
 import pywt
 
-
 def embed_watermark(subband, mark, layer, theta, alpha=0.5, v='multiplicative'):
 
     mask = create_perceptual_mask(subband)
