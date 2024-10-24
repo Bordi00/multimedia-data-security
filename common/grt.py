@@ -5,9 +5,9 @@
 import os                                           # standard
 import sys
 import random
+import inspect
 from math import sqrt                               # math and analysis
 import numpy as np
-import pandas as pd
 from scipy.signal import convolve2d, medfilt        # signal processing
 from scipy.ndimage import gaussian_filter
 from scipy.fft import dct, idct
@@ -48,19 +48,19 @@ def canny_edges(img):
 def blur_gauss(img, sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     attacked = gaussian_filter(img, sigma)
-    return (attacked, blur_gauss.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def blur_median(img, size):
     args = {key: value for key, value in list(locals().items())[1:]}
     attacked = medfilt(img, size)
-    return (attacked, blur_median.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def awgn(img, mean, std, seed):
     args = {key: value for key, value in list(locals().items())[1:]}
     np.random.seed(seed)
     attacked = img + np.random.normal(mean, std, img.shape)
     attacked = np.clip(attacked, 0, 255)
-    return (attacked, awgn.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def jpeg_compression(img, qf):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -70,7 +70,7 @@ def jpeg_compression(img, qf):
     attacked = Image.open('tmp.jpg')
     attacked = np.asarray(attacked, dtype = np.uint8)
     os.remove('tmp.jpg')
-    return (attacked, jpeg_compression.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def resize(img, scale):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -81,7 +81,7 @@ def resize(img, scale):
     attacked = rescale(attacked, 1 / scale, anti_aliasing = True, mode = 'reflect')
     attacked = np.asarray(attacked * 255, dtype = np.uint8)
     attacked = cv2.resize(attacked, (y, x), interpolation = cv2.INTER_LINEAR)
-    return (attacked, resize.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 # --------------------
 #   Localized attacks
@@ -95,7 +95,7 @@ def blur_edge(img, blur_func, sigma, edge_func):
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     blurred_img = blur_func(img, sigma)[0]
     attacked = (1 - edges) * img + edges * blurred_img
-    return (attacked, blur_edge.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def blur_flat(img, blur_func, sigma, edge_func):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -105,7 +105,7 @@ def blur_flat(img, blur_func, sigma, edge_func):
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     blurred_img = blur_func(img, sigma)[0]
     attacked = edges * img + (1 - edges) * blurred_img
-    return (attacked, blur_flat.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def awgn_edge(img, mean, std, seed, edge_func):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -118,7 +118,7 @@ def awgn_edge(img, mean, std, seed, edge_func):
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     edge_res[edges > 0] = [255]
     attacked[edges > 0] = global_awgn[edges > 0]
-    return (attacked, awgn_edge.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 # --------------------
 #   Tranform attacks
@@ -140,7 +140,7 @@ def blur_dwt(img, blur_func, sigma):
     attacked = pywt.idwt2(coeffs_blurred, 'haar')
     attacked = np.clip(attacked, 0, 255)
     attacked = attacked.astype(np.uint8)
-    return (attacked, blur_dwt.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def awgn_dwt(img, mean, std, seed):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -162,7 +162,7 @@ def awgn_dwt(img, mean, std, seed):
     attacked = pywt.idwt2(coeffs_noisy, 'haar')
     attacked = np.clip(attacked, 0, 255)
     attacked = attacked.astype(np.uint8)
-    return (attacked, awgn_dwt.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def jpeg_dwt(img, qf):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -180,7 +180,7 @@ def jpeg_dwt(img, qf):
     attacked = pywt.idwt2(coeffs_compressed, 'haar')
     attacked = np.clip(attacked, 0, 255)
     attacked = attacked.astype(np.uint8)
-    return (attacked, jpeg_dwt.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def resize_dwt(img, scale):
     args = {key: value for key, value in list(locals().items())[1:]}
@@ -198,7 +198,7 @@ def resize_dwt(img, scale):
     attacked = pywt.idwt2(coeffs_resized, 'haar')
     attacked = np.clip(attacked, 0, 255)
     attacked = attacked.astype(np.uint8)
-    return (attacked, resize_dwt.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 # --------------------
 #   Combo attacks
@@ -208,22 +208,22 @@ def resize_jpeg(img, qf, scale):
     args = {key: value for key, value in list(locals().items())[1:]}
     compressed = jpeg_compression(img, qf)[[0]]
     attacked = resize(compressed, scale)[0]
-    return (attacked, resize_jpeg.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def blur_jpeg(img, qf, blur_func, sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     compressed = jpeg_compression(img, qf)[0]
     attacked = blur_func(compressed, sigma)[0]
-    return (attacked, blur_jpeg.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def blur_awgn(img, mean, std, seed, blur_func, sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     noisy = awgn(img, mean, std, seed)[0]
     attacked = blur_func(noisy, sigma)[0]
-    return (attacked, blur_awgn.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
 
 def jpeg_awgn(img, mean, std, seed, qf):
     args = {key: value for key, value in list(locals().items())[1:]}
     noisy = awgn(img, mean, std, seed)[0]
     attacked = jpeg_compression(noisy, qf)[0]
-    return (attacked, jpeg_awgn.__name__, args)
+    return (attacked, inspect.stack()[0][3], args)
