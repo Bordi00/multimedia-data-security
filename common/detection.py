@@ -66,7 +66,7 @@ def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
 def detection(original, watermarked, attacked, alpha, max_layer):
     ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer)
     ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
-    thr = 0.2
+    thr = 0.70
     sim = []
     for w in ex_attacked:
         sim.append(similarity(ex_mark[0], w))
