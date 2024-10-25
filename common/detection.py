@@ -1,6 +1,6 @@
 import numpy as np
 import pywt
-from utility import create_perceptual_mask, get_locations, modular_alpha
+from utility import create_perceptual_mask, get_locations, modular_alpha, wpsnr
 
 
 def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='multiplicative'):
@@ -44,32 +44,36 @@ def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
         extracted_wms.append(extract_watermark(LH2_or, LH2_w, 2, 0, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HL2_or, HL2_w, 2, 2, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HH2_or, HH2_w, 2, 1, alpha=alpha, v=v))
-        w_ex.append(sum(extracted_wms) / len(extracted_wms))
+        w_ex.append(sum(extracted_wms) / 3)
 
+    extracted_wms = []
     if max_layer >= 1:
         extracted_wms.append(extract_watermark(LH1_or, LH1_w, 1, 0, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HL1_or, HL1_w, 1, 2, alpha=alpha, v=v))
         extracted_wms.append(extract_watermark(HH1_or, HH1_w, 1, 1, alpha=alpha, v=v))
-        w_ex.append(sum(extracted_wms) / len(extracted_wms))
+        w_ex.append(sum(extracted_wms) / 3)
 
-
+    extracted_wms = []
     extracted_wms.append(extract_watermark(LH0_or, LH0_w, 0, 0, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HL0_or, HL0_w, 0, 2, alpha=alpha, v=v))
     extracted_wms.append(extract_watermark(HH0_or, HH0_w, 0, 1, alpha=alpha, v=v))
-    w_ex.append(sum(extracted_wms) / len(extracted_wms))
+    w_ex.append(sum(extracted_wms) / 3)
 
 
     return w_ex
 
+
 def detection(original, watermarked, attacked, alpha, max_layer):
     ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer)
     ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
-    thr = 0.7045
+    thr = 0.2
     sim = []
     for w in ex_attacked:
         sim.append(similarity(ex_mark[0], w))
+
     sim = max(sim)
-    if sim >= thr:
+
+    if sim >= thr or wpsnr(watermarked, attacked) < 35:
         return 1
     return 0
 
