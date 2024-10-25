@@ -73,8 +73,9 @@ def detection(original, watermarked, attacked, alpha, max_layer):
 
     sim = max(sim)
 
-    if sim >= thr or wpsnr(watermarked, attacked) < 35:
+    if sim >= thr and wpsnr(watermarked, attacked) > 25:
         return 1
+    
     return 0
 
 def similarity(X, X_star):
