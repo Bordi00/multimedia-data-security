@@ -27,13 +27,11 @@ def extract_watermark(subband, watermarked_subband, layer, theta, alpha=0.5, v='
     return np.clip(extracted_mark, 0, 1)
 
 def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
-    #ori_dct = dct(dct(image,axis=0, norm='ortho'),axis=1, norm='ortho')
     LL0_or, (LH0_or, HL0_or, HH0_or) = pywt.dwt2(image, 'haar')
     LL1_or, (LH1_or, HL1_or, HH1_or) = pywt.dwt2(LL0_or, 'haar')
     LL2_or, (LH2_or, HL2_or, HH2_or) = pywt.dwt2(LL1_or, 'haar')
      
 
-    #wat_dct = dct(dct(watermarked,axis=0, norm='ortho'),axis=1, norm='ortho')
     LL0_w, (LH0_w, HL0_w, HH0_w) = pywt.dwt2(watermarked, 'haar')
     LL1_w, (LH1_w, HL1_w, HH1_w) = pywt.dwt2(LL0_w, 'haar')
     LL2_w, (LH2_w, HL2_w, HH2_w) = pywt.dwt2(LL1_w, 'haar')
@@ -62,21 +60,20 @@ def detect_wm(image, watermarked, alpha, max_layer=2, v='multiplicative'):
 
     return w_ex
 
-
 def detection(original, watermarked, attacked, alpha, max_layer):
     ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer)
     ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer)
-    thr = 0.70
+    thr = 0.7
     sim = []
     for w in ex_attacked:
         sim.append(similarity(ex_mark[0], w))
 
     sim = max(sim)
-
-    if sim >= thr and wpsnr(watermarked, attacked) > 25:
+   
+    if sim >= thr or wpsnr(watermarked, attacked) < 35:
         return 1
-    
     return 0
+
 
 def similarity(X, X_star):
     # Computes the similarity measure between the original and the new watermarks.
