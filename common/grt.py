@@ -18,6 +18,54 @@ from skimage.transform import rescale
 import matplotlib                                   # visualization
 import matplotlib.pyplot as plt
 
+
+
+attack_type = {
+    'blur_gauss': lambda img, **attack_args: blur_gauss(img, **attack_args),
+    'blur_median': lambda img, **attack_args: blur_median(img, **attack_args),
+    'awgn': lambda img, **attack_args: awgn(img, **attack_args),
+    'jpeg_compression':lambda img,**attack_args: jpeg_compression(img, **attack_args),
+    'resize': lambda img, **attack_args: resize(img, **attack_args),
+    'gauss_edge': lambda img, **attack_args: gauss_edge(img, **attack_args),
+    'median_edge': lambda img, **attack_args: median_edge(img, **attack_args),
+    'gauss_flat':  lambda img, **attack_args: gauss_flat(img, **attack_args), 
+    'median_flat': lambda img, **attack_args: median_flat(img, **attack_args),
+    'awgn_edge': lambda img, **attack_args: awgn_edge(img, **attack_args),
+    'resize_jpeg': lambda img, **attack_args: resize_jpeg(img, **attack_args),
+    'gauss_jpeg': lambda img, **attack_args: gauss_jpeg(img, **attack_args),
+    'median_jpeg': lambda img, **attack_args: median_jpeg(img, **attack_args),
+    'gauss_awgn': lambda img, **attack_args: gauss_awgn(img, **attack_args),
+    'median_awgn': lambda img, **attack_args: median_awgn(img, **attack_args),
+    'jpeg_awgn': lambda img, **attack_args: jpeg_awgn(img, **attack_args),
+    'gauss_dwt': lambda img, **attack_args: gauss_dwt(img, **attack_args),
+    'median_dwt': lambda img, **attack_args: median_dwt(img, **attack_args),
+    'awgn_dwt': lambda img, **attack_args: awgn_dwt(img, **attack_args),
+    'jpeg_dwt': lambda img, **attack_args: jpeg_dwt(img, **attack_args),
+    'resize_dwt': lambda img, **attack_args: resize_dwt(img, **attack_args),
+    'gauss_edge_dwt': lambda img, **attack_args: gauss_edge_dwt(img, **attack_args),
+    'median_edge_dwt': lambda img, **attack_args: median_edge_dwt(img, **attack_args),
+    'gauss_flat_dwt': lambda img, **attack_args: gauss_flat_dwt(img, **attack_args),
+    'median_flat_dwt': lambda img, **attack_args: median_flat_dwt(img, **attack_args),
+    'awgn_edge_dwt': lambda img, **attack_args: awgn_edge_dwt(img, **attack_args),
+    'resize_jpeg_dwt': lambda img, **attack_args: resize_jpeg_dwt(img, **attack_args),
+    'gauss_jpeg_dwt': lambda img, **attack_args: gauss_jpeg_dwt(img, **attack_args),
+    'median_jpeg_dwt': lambda img, **attack_args: median_jpeg_dwt(img, **attack_args),
+    'gauss_awgn_dwt':  lambda img, **attack_args: gauss_awgn_dwt(img, **attack_args),
+    'median_awgn_dwt': lambda img, **attack_args: median_awgn_dwt(img, **attack_args),
+    'jpeg_awgn_dwt': lambda img, **attack_args: jpeg_awgn_dwt(img, **attack_args),
+}
+
+
+def attack(img_path, attack_id, attack_args):
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    return attack_type[attack_id](img, **attack_args)        
+        
+    
+
+
+
+
+
 # --------------------
 #   Edge detection
 # --------------------
@@ -44,7 +92,7 @@ def canny_edge(img):
 # --------------------
 #   Global attacks
 # --------------------
-
+ #attack (img, "blur_gauss",{sigma:2})
 def blur_gauss(img, sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     attacked = gaussian_filter(img, sigma)
