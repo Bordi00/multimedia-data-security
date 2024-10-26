@@ -3,12 +3,8 @@ from scipy.signal import convolve2d
 from math import sqrt
 import matplotlib.pyplot as plt
 import cv2
-import random
-from tqdm import tqdm
-import os
-import embedding
-import detection
-import attacks
+
+
 def wpsnr(img1, img2):
   img1 = np.float32(img1)/255.0
   img2 = np.float32(img2)/255.0
@@ -41,19 +37,22 @@ def visualize_images_with_desc(images, titles, figsize=(15, 6)):
     plt.tight_layout()  # Adjust the layout
     plt.show()
 
-# def create_perceptual_mask(image):
-#     sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
-#     sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
-#     edges = cv2.magnitude(sobel_x, sobel_y)
-#     mask = cv2.normalize(edges, None, 0, 1, cv2.NORM_MINMAX)
-#     mask = cv2.GaussianBlur(mask, (5, 5), 0)
-#     return mask
+def create_perceptual_mask_2(image):
+    sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+    edges = cv2.magnitude(sobel_x, sobel_y)
+    mask = cv2.normalize(edges, None, 0, 1, cv2.NORM_MINMAX)
+    mask = cv2.GaussianBlur(mask, (5, 5), 0)
+    return mask
+
+
 def compute_brightness_sensitivity(subband):
 
     # Normalize brightness between 0 and 1
     min_brightness = np.min(subband)
     max_brightness = np.max(subband)
-    brightness_sensitivity = (subband - min_brightness) / (max_brightness - min_brightness + 1e-6)
+    # brightness_sensitivity = (subband - min_brightness) / (max_brightness - min_brightness + 1e-6)
+    brightness_sensitivity = np.clip()
     
     # Invert to give higher sensitivity in dark areas (lower brightness = higher mask value)
     return 1 - brightness_sensitivity
@@ -66,7 +65,8 @@ def compute_edge_sensitivity(subband):
     gradient_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
     
     # Normalize gradient magnitude between 0 and 1
-    gradient_sensitivity = (gradient_magnitude - np.min(gradient_magnitude)) / (np.max(gradient_magnitude) - np.min(gradient_magnitude) + 1e-6)
+    # gradient_sensitivity = (gradient_magnitude - np.min(gradient_magnitude)) / (np.max(gradient_magnitude) - np.min(gradient_magnitude) + 1e-6)
+    gradient_sensitivity = np.clip(gradient_magnitude, 0, 1)
     
     return gradient_sensitivity
 
@@ -77,11 +77,12 @@ def compute_texture_sensitivity(subband):
     local_variance = cv2.blur((subband - mean) ** 2, (3, 3))
     
     # Normalize local variance between 0 and 1
-    texture_sensitivity = (local_variance - np.min(local_variance)) / (np.max(local_variance) - np.min(local_variance) + 1e-6)
+    # texture_sensitivity = (local_variance - np.min(local_variance)) / (np.max(local_variance) - np.min(local_variance) + 1e-6)
+    texture_sensitivity = np.clip(local_variance, 0, 1)
     
     return texture_sensitivity
 
-def create_perceptual_mask(subband):
+def create_perceptual_mask_1(subband):
 
     mask = np.ones(subband.shape)
     mask += compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband)
@@ -140,87 +141,6 @@ def invisibility_point(avg):
     return points
 
 
-
-
-'''
-total_history,total_succesfull_attacks,points =  utility.test_pipelines(
-    alpha =0.48, 
-    max_layer=1, 
-    num_images=2,
-    embedding_fn=embedding.embedding,
-    attacks_list=attacks.attack_incremental_paramters,
-    detection_fn=detection.detection)
-'''
-def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,detection_fn=detection.detection,attacks_list=attacks.attack_incremental_paramters):
-    img_folder = 'sample_imgs'
-    img_files =  [f for f in os.listdir(img_folder) if f.endswith(('.bmp'))]
-    img_files = random.sample(img_files, num_images)
-    images = []
-    for file in img_files:
-        img_path = os.path.join(img_folder, file)
-        images.append(cv2.imread(img_path, 0))
-    images = np.array(images) # optional
-    visualize_images_with_desc(images, ['Original']*len(images))
-    mark = np.load('ammhackati.npy')
-
-
-    history = []    
-    watermarked = []
-    wpsnr_value = 0
-    for img in images:
-        watermarked.append(embedding_fn(img, mark, alpha,max_layer=max_layer))
-    for i,img in enumerate(watermarked):
-        wpsnr_value += wpsnr(img, images[i])
-        
-    print("meanw psnr after embedding ", wpsnr_value/len(watermarked))
-    invisibility = invisibility_point(wpsnr_value/len(watermarked))
-    total_history = []
-    total_succesfull = []
-    for i,wm in enumerate(watermarked):
-        attack_functions = attacks_list
-        progress_bar = tqdm(attack_functions, desc="Applying attacks")
-        history = []
-        succesfull_attack = []
-        for attack_fn in progress_bar:
-            param = attack_fn['start']
-            detected = 1
-            attack_name = ''
-            while param <= attack_fn['end']:
-                attacked,attack_name,usd = attack_fn['function'](wm, param)
-                detected = detection_fn(images[i], wm,attacked, alpha, max_layer)
-                wpsnr_attacked = wpsnr(wm, attacked)
-                progress_bar.set_postfix({"image":i,"attack":attack_name , "wpsnr": wpsnr_attacked,"detected":detected,"param":usd})
-                #utility.visualize_images_with_desc([images[i], wm, attacked], ['Original', 'Watermarked', 'Attacked'])
-                param += attack_fn['increment_params']
-
-                history.append({"images":i,"attack":attack_name , "wpsnr": wpsnr_attacked,"param":usd})
-                if detected == 0:
-                    succesfull_attack.append({"images":i,"attack":attack_name , "wpsnr": wpsnr_attacked,"param":usd})
-                    break
-        total_history.append(history)
-        total_succesfull.append(succesfull_attack)
-   
-    mean_max_attacked_wpsnr = 0
-    for succ in total_succesfull:
-        max_attacked_wpsnr = 0
-        for s in succ:
-            #print("succesfull attack",s["attack"]," on image ", s['images'], " with wpsnr ", s['wpsnr'])
-            max_attacked_wpsnr = max(max_attacked_wpsnr,s['wpsnr'])
-        #print("max attacked wpsnr ", max_attacked_wpsnr, " on image ", s['images'])
-        mean_max_attacked_wpsnr += max_attacked_wpsnr
-    print("mean max attacked wpsnr ", mean_max_attacked_wpsnr/len(total_succesfull))
-    robustenss = robustness_point(mean_max_attacked_wpsnr/len(total_succesfull))
-    
-    #print("estimate points for invisibility + robusteness ", points)
-    
-    # for hist in total_history:
-    #     for h in hist:
-    #         print("image ", h['images'], " wpsnr ", h['wpsnr'])
-    # # for succ in succesfull_attack:
-    #     succesfull_attacks.
-    print("estimate points for invisibility + robusteness ", invisibility,robustenss," total points =",invisibility+robustenss)
-
-    return total_history,total_succesfull,(invisibility,robustenss)
     
     
             
