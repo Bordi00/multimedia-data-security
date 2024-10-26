@@ -6,6 +6,9 @@ import cv2
 import random
 from tqdm import tqdm
 import os
+import embedding
+import detection
+import attacks
 def wpsnr(img1, img2):
   img1 = np.float32(img1)/255.0
   img2 = np.float32(img2)/255.0
@@ -148,7 +151,7 @@ total_history,total_succesfull_attacks,points =  utility.test_pipelines(
     attacks_list=attacks.attack_incremental_paramters,
     detection_fn=detection.detection)
 '''
-def test_pipelines(alpha,max_layer,num_images,embedding_fn,detection_fn,attacks_list):
+def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,detection_fn=detection.detection,attacks_list=attacks.attack_incremental_paramters):
     img_folder = 'sample_imgs'
     img_files =  [f for f in os.listdir(img_folder) if f.endswith(('.bmp'))]
     img_files = random.sample(img_files, num_images)
@@ -197,9 +200,9 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn,detection_fn,attacks_
         total_history.append(history)
         total_succesfull.append(succesfull_attack)
    
-    max_attacked_wpsnr = 0
     mean_max_attacked_wpsnr = 0
     for succ in total_succesfull:
+        max_attacked_wpsnr = 0
         for s in succ:
             #print("succesfull attack",s["attack"]," on image ", s['images'], " with wpsnr ", s['wpsnr'])
             max_attacked_wpsnr = max(max_attacked_wpsnr,s['wpsnr'])
