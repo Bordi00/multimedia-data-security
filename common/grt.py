@@ -161,7 +161,7 @@ def awgn_edge(img, mean, std, seed, edge_func):
 
 def resize_jpeg(img, qf, scale):
     args = {key: value for key, value in list(locals().items())[1:]}
-    compressed = jpeg_compression(img, qf)[[0]]
+    compressed = jpeg_compression(img, qf)[0]
     attacked = resize(compressed, scale)[0]
     return (attacked, inspect.stack()[0][3], args)
 
