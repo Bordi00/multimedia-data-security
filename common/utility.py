@@ -51,8 +51,7 @@ def compute_brightness_sensitivity(subband):
     # Normalize brightness between 0 and 1
     min_brightness = np.min(subband)
     max_brightness = np.max(subband)
-    # brightness_sensitivity = (subband - min_brightness) / (max_brightness - min_brightness + 1e-6)
-    brightness_sensitivity = np.clip()
+    brightness_sensitivity = (subband - min_brightness) / (max_brightness - min_brightness + 1e-6)
     
     # Invert to give higher sensitivity in dark areas (lower brightness = higher mask value)
     return 1 - brightness_sensitivity
@@ -65,8 +64,8 @@ def compute_edge_sensitivity(subband):
     gradient_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
     
     # Normalize gradient magnitude between 0 and 1
-    # gradient_sensitivity = (gradient_magnitude - np.min(gradient_magnitude)) / (np.max(gradient_magnitude) - np.min(gradient_magnitude) + 1e-6)
-    gradient_sensitivity = np.clip(gradient_magnitude, 0, 1)
+    gradient_sensitivity = (gradient_magnitude - np.min(gradient_magnitude)) / (np.max(gradient_magnitude) - np.min(gradient_magnitude) + 1e-6)
+    # gradient_sensitivity = np.clip(gradient_magnitude, 0, 1)
     
     return gradient_sensitivity
 
@@ -77,8 +76,8 @@ def compute_texture_sensitivity(subband):
     local_variance = cv2.blur((subband - mean) ** 2, (3, 3))
     
     # Normalize local variance between 0 and 1
-    # texture_sensitivity = (local_variance - np.min(local_variance)) / (np.max(local_variance) - np.min(local_variance) + 1e-6)
-    texture_sensitivity = np.clip(local_variance, 0, 1)
+    texture_sensitivity = (local_variance - np.min(local_variance)) / (np.max(local_variance) - np.min(local_variance) + 1e-6)
+    # texture_sensitivity = np.clip(local_variance, 0, 1)
     
     return texture_sensitivity
 
