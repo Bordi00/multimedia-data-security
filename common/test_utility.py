@@ -5,11 +5,12 @@ from utility import visualize_images_with_desc, invisibility_point, wpsnr, robus
 from tqdm import tqdm
 import random
 import os
+import cv2
+import numpy as np
 
 
 
-
-def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,detection_fn=detection.detection,attacks_list=attacks.attack_incremental_paramters):
+def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,detection_fn=detection.detection,attacks_list=attacks.attack_incremental_paramters,embedding_mask=2):
 
     '''
     total_history,total_succesfull_attacks,points =  utility.test_pipelines(
@@ -36,7 +37,7 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
     watermarked = []
     wpsnr_value = 0
     for img in images:
-        watermarked.append(embedding_fn(img, mark, alpha,max_layer=max_layer))
+        watermarked.append(embedding_fn(img, mark, alpha,max_layer=max_layer,mask_type=embedding_mask))
     for i,img in enumerate(watermarked):
         wpsnr_value += wpsnr(img, images[i])
         
