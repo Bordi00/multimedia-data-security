@@ -38,12 +38,51 @@ def visualize_images_with_desc(images, titles, figsize=(15, 6)):
     plt.tight_layout()  # Adjust the layout
     plt.show()
 
-def create_perceptual_mask(image):
-    sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
-    sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
-    edges = cv2.magnitude(sobel_x, sobel_y)
-    mask = cv2.normalize(edges, None, 0, 1, cv2.NORM_MINMAX)
-    mask = cv2.GaussianBlur(mask, (5, 5), 0)
+# def create_perceptual_mask(image):
+#     sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+#     sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+#     edges = cv2.magnitude(sobel_x, sobel_y)
+#     mask = cv2.normalize(edges, None, 0, 1, cv2.NORM_MINMAX)
+#     mask = cv2.GaussianBlur(mask, (5, 5), 0)
+#     return mask
+def compute_brightness_sensitivity(subband):
+
+    # Normalize brightness between 0 and 1
+    min_brightness = np.min(subband)
+    max_brightness = np.max(subband)
+    brightness_sensitivity = (subband - min_brightness) / (max_brightness - min_brightness + 1e-6)
+    
+    # Invert to give higher sensitivity in dark areas (lower brightness = higher mask value)
+    return 1 - brightness_sensitivity
+
+def compute_edge_sensitivity(subband):
+
+    # Compute image gradient (strong edges correspond to higher gradients)
+    sobel_x = cv2.Sobel(subband, cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(subband, cv2.CV_64F, 0, 1, ksize=3)
+    gradient_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+    
+    # Normalize gradient magnitude between 0 and 1
+    gradient_sensitivity = (gradient_magnitude - np.min(gradient_magnitude)) / (np.max(gradient_magnitude) - np.min(gradient_magnitude) + 1e-6)
+    
+    return gradient_sensitivity
+
+def compute_texture_sensitivity(subband):
+    
+    # Compute local variance as a measure of texture
+    mean = cv2.blur(subband, (3, 3))
+    local_variance = cv2.blur((subband - mean) ** 2, (3, 3))
+    
+    # Normalize local variance between 0 and 1
+    texture_sensitivity = (local_variance - np.min(local_variance)) / (np.max(local_variance) - np.min(local_variance) + 1e-6)
+    
+    return texture_sensitivity
+
+def create_perceptual_mask(subband):
+
+    mask = np.ones(subband.shape)
+    mask += compute_brightness_sensitivity(subband) * compute_edge_sensitivity(subband) * compute_texture_sensitivity(subband)
+
     return mask
 
 def modular_alpha(layer, theta, alpha):
