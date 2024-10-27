@@ -28,7 +28,7 @@ attack_type = {
     'awgn':             lambda img, **attack_args: awgn(img, **attack_args),
     'jpeg_compression': lambda img, **attack_args: jpeg_compression(img, **attack_args),
     'resize':           lambda img, **attack_args: resize(img, **attack_args),
-    'sharp':            lambda img, **attack_args: sharp(img, **attack_args),               # new
+    'sharp':            lambda img, **attack_args: sharp(img, **attack_args),
     'gauss_edge':       lambda img, **attack_args: gauss_edge(img, **attack_args),
     'median_edge':      lambda img, **attack_args: median_edge(img, **attack_args),
     'gauss_flat':       lambda img, **attack_args: gauss_flat(img, **attack_args), 
@@ -40,8 +40,8 @@ attack_type = {
     'gauss_awgn':       lambda img, **attack_args: gauss_awgn(img, **attack_args),
     'median_awgn':      lambda img, **attack_args: median_awgn(img, **attack_args),
     'jpeg_awgn':        lambda img, **attack_args: jpeg_awgn(img, **attack_args),           
-    'sharp_gauss':      lambda img, **attack_args: sharp_gauss(img, **attack_args),         # new
-    'sharp_median':     lambda img, **attack_args: sharp_median(img, **attack_args),        # new
+    'sharp_gauss':      lambda img, **attack_args: sharp_gauss(img, **attack_args),
+    'sharp_median':     lambda img, **attack_args: sharp_median(img, **attack_args),
     'gauss_dwt':        lambda img, **attack_args: gauss_dwt(img, **attack_args),
     'median_dwt':       lambda img, **attack_args: median_dwt(img, **attack_args),
     'awgn_dwt':         lambda img, **attack_args: awgn_dwt(img, **attack_args),
@@ -59,12 +59,12 @@ attack_type = {
     'median_awgn_dwt':  lambda img, **attack_args: median_awgn_dwt(img, **attack_args),
     'jpeg_awgn_dwt':    lambda img, **attack_args: jpeg_awgn_dwt(img, **attack_args),
     'attack_edge_blur': lambda img, **attack_args: attack_edge_blur(img, **attack_args),     
-    'sharp_gauss_dwt':  lambda img, **attack_args: sharp_gauss_dwt(img, **attack_args),     # new
-    'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),    # new
+    'sharp_gauss_dwt':  lambda img, **attack_args: sharp_gauss_dwt(img, **attack_args),
+    'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),
 }
 
-def attack(img, attack_id, attack_args): # TO DO change image into path
-    #img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+def attack(img_path, attack_id, attack_args):
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     return attack_type[attack_id](img, **attack_args)[0]      
 
 # --------------------
@@ -121,11 +121,10 @@ def jpeg_compression(img, qf):
     os.remove('tmp.jpg')
     return (attacked, inspect.stack()[0][3], args)
 
-def attack_edge_blur(img,attack_name, attack_args,sigma):
+def attack_edge_blur(img, attack_name, attack_args,sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     attacked_mask = attack_type[attack_name](img,**attack_args)[0]
     attacked_mask = blur_gauss(attacked_mask,sigma)[0]
-    
     edges = canny_edge(img).astype(np.uint8) 
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     print(img.shape, edges.shape, attacked_mask.shape)
