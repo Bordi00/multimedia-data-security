@@ -156,8 +156,8 @@ def detection(original, watermarked, attacked):
     sim = max(sim)
     
     quality = wpsnr(watermarked, attacked)
-
-    if sim >= thr:
+    
+    if sim >= thr and quality >= 25:
         return 1, quality
     
     return 0, quality
