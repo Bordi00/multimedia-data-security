@@ -59,6 +59,7 @@ attack_type = {
     'median_awgn_dwt':  lambda img, **attack_args: median_awgn_dwt(img, **attack_args),
     'jpeg_awgn_dwt':    lambda img, **attack_args: jpeg_awgn_dwt(img, **attack_args),
     'attack_edge_blur': lambda img, **attack_args: attack_edge_blur(img, **attack_args),     
+    'blur_attack_edge': lambda img, **attack_args: blur_attack_edge(img, **attack_args),     
     'sharp_gauss_dwt':  lambda img, **attack_args: sharp_gauss_dwt(img, **attack_args),     # new
     'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),    # new
 }
@@ -128,7 +129,17 @@ def attack_edge_blur(img,attack_name, attack_args,sigma):
     
     edges = canny_edge(img).astype(np.uint8) 
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
-    print(img.shape, edges.shape, attacked_mask.shape)
+    img[edges > 0] = attacked_mask[edges > 0]
+    return (img, inspect.stack()[0][3], args)
+
+def blur_attack_edge(img,attack_name, attack_args,sigma):
+    args = {key: value for key, value in list(locals().items())[1:]}
+    attacked_mask = blur_gauss(img,sigma)[0]
+    attacked_mask = attack_type[attack_name](attacked_mask,**attack_args)[0]
+
+    
+    edges = canny_edge(img).astype(np.uint8) 
+    edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     img[edges > 0] = attacked_mask[edges > 0]
     return (img, inspect.stack()[0][3], args)
 
