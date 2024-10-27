@@ -55,10 +55,11 @@ attack_type = {
     'gauss_awgn_dwt':   lambda img, **attack_args: gauss_awgn_dwt(img, **attack_args),
     'median_awgn_dwt':  lambda img, **attack_args: median_awgn_dwt(img, **attack_args),
     'jpeg_awgn_dwt':    lambda img, **attack_args: jpeg_awgn_dwt(img, **attack_args),
+    'attack_edge_blur': lambda img, **attack_args: attack_edge_blur(img, **attack_args)
 }
 
-def attack(img, attack_id, attack_args): # TO DO change image into path
-    #img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+def attack(img_path, attack_id, attack_args): # TO DO change image into path
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     return attack_type[attack_id](img, **attack_args)[0]       
 
 # --------------------
@@ -114,6 +115,17 @@ def jpeg_compression(img, qf):
     attacked = np.asarray(attacked, dtype = np.uint8)
     os.remove('tmp.jpg')
     return (attacked, inspect.stack()[0][3], args)
+
+def attack_edge_blur(img,attack_name, attack_args,sigma):
+    args = {key: value for key, value in list(locals().items())[1:]}
+    attacked_mask = attack_type[attack_name](img,**attack_args)[0]
+    attacked_mask = blur_gauss(attacked_mask,sigma)[0]
+    
+    edges = canny_edge(img).astype(np.uint8) 
+    edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
+    print(img.shape, edges.shape, attacked_mask.shape)
+    img[edges > 0] = attacked_mask[edges > 0]
+    return (img, inspect.stack()[0][3], args)
 
 def resize(img, scale):
     args = {key: value for key, value in list(locals().items())[1:]}
