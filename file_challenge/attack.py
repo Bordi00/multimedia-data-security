@@ -64,9 +64,9 @@ attack_type = {
     'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),
 }
 
-def attack(img_path, attack_id, attack_args):
+def attack(img_path, attack_name, attack_args):
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-    return attack_type[attack_id](img, **attack_args)[0]      
+    return attack_type[attack_name](img, **attack_args)[0]      
 
 # --------------------
 #   Edge detection
