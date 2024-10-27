@@ -142,10 +142,15 @@ def detect_wm(image, watermarked, alpha, max_layer=2, mask_type=2, v='multiplica
 
     return w_ex
 
-def detection(original, watermarked, attacked):
+def detection(original_path, watermarked_path, attacked_path):
     alpha=0.5
     max_layer=2 
     mask_type=2
+    original = cv2.imread(original_path, 0)
+    watermarked = cv2.imread(watermarked_path, 0)
+    attacked = cv2.imread(attacked_path, 0)
+
+
     ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer, mask_type=mask_type)
     ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer, mask_type=mask_type)
     thr = 0.7
