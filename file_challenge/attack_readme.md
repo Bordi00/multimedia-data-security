@@ -1,7 +1,6 @@
 # Attack File
 The attack file contains different types of attack, that can be invoked through the `attack` wrapper function:
 
-## Usage
 - Inputs:
     - `image_path`: path to the image to attack
     - `attack_name`: name of the attack function to apply
