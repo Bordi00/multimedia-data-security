@@ -28,7 +28,7 @@ attack_type = {
     'awgn':             lambda img, **attack_args: awgn(img, **attack_args),
     'jpeg_compression': lambda img, **attack_args: jpeg_compression(img, **attack_args),
     'resize':           lambda img, **attack_args: resize(img, **attack_args),
-    'sharp':            lambda img, **attack_args: sharp(img, **attack_args),               # new
+    'sharp':            lambda img, **attack_args: sharp(img, **attack_args),
     'gauss_edge':       lambda img, **attack_args: gauss_edge(img, **attack_args),
     'median_edge':      lambda img, **attack_args: median_edge(img, **attack_args),
     'gauss_flat':       lambda img, **attack_args: gauss_flat(img, **attack_args), 
@@ -40,8 +40,8 @@ attack_type = {
     'gauss_awgn':       lambda img, **attack_args: gauss_awgn(img, **attack_args),
     'median_awgn':      lambda img, **attack_args: median_awgn(img, **attack_args),
     'jpeg_awgn':        lambda img, **attack_args: jpeg_awgn(img, **attack_args),           
-    'sharp_gauss':      lambda img, **attack_args: sharp_gauss(img, **attack_args),         # new
-    'sharp_median':     lambda img, **attack_args: sharp_median(img, **attack_args),        # new
+    'sharp_gauss':      lambda img, **attack_args: sharp_gauss(img, **attack_args),
+    'sharp_median':     lambda img, **attack_args: sharp_median(img, **attack_args),
     'gauss_dwt':        lambda img, **attack_args: gauss_dwt(img, **attack_args),
     'median_dwt':       lambda img, **attack_args: median_dwt(img, **attack_args),
     'awgn_dwt':         lambda img, **attack_args: awgn_dwt(img, **attack_args),
@@ -58,14 +58,14 @@ attack_type = {
     'gauss_awgn_dwt':   lambda img, **attack_args: gauss_awgn_dwt(img, **attack_args),
     'median_awgn_dwt':  lambda img, **attack_args: median_awgn_dwt(img, **attack_args),
     'jpeg_awgn_dwt':    lambda img, **attack_args: jpeg_awgn_dwt(img, **attack_args),
-    'attack_edge_blur': lambda img, **attack_args: attack_edge_blur(img, **attack_args),     
-    'blur_attack_edge': lambda img, **attack_args: blur_attack_edge(img, **attack_args),     
-    'sharp_gauss_dwt':  lambda img, **attack_args: sharp_gauss_dwt(img, **attack_args),     # new
-    'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),    # new
+    'attack_edge_blur': lambda img, **attack_args: attack_edge_blur(img, **attack_args), 
+    'blur_attack_edge': lambda img, **attack_args: blur_attack_edge(img, **attack_args),    
+    'sharp_gauss_dwt':  lambda img, **attack_args: sharp_gauss_dwt(img, **attack_args),
+    'sharp_median_dwt': lambda img, **attack_args: sharp_median_dwt(img, **attack_args),
 }
 
-def attack(img, attack_id, attack_args): # TO DO change image into path
-    #img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+def attack(img_path, attack_id, attack_args):
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     return attack_type[attack_id](img, **attack_args)[0]      
 
 # --------------------
@@ -122,11 +122,10 @@ def jpeg_compression(img, qf):
     os.remove('tmp.jpg')
     return (attacked, inspect.stack()[0][3], args)
 
-def attack_edge_blur(img,attack_name, attack_args,sigma):
+def attack_edge_blur(img, attack_name, attack_args,sigma):
     args = {key: value for key, value in list(locals().items())[1:]}
     attacked_mask = attack_type[attack_name](img,**attack_args)[0]
     attacked_mask = blur_gauss(attacked_mask,sigma)[0]
-    
     edges = canny_edge(img).astype(np.uint8) 
     edges = cv2.resize(edges, (img.shape[1], img.shape[0]))
     img[edges > 0] = attacked_mask[edges > 0]
@@ -296,9 +295,9 @@ def gauss_dwt(img, sigma):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -320,9 +319,9 @@ def median_dwt(img, size):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -344,9 +343,9 @@ def awgn_dwt(img, mean, std, seed):
     if np.isscalar(mean):
         mean = np.full(4, mean)
     elif isinstance(mean, (list, np.ndarray)):
-        if mean.size < 4:
-            mean = np.pad(mean, (0, 4 - mean.size), mode = 'constant')
-        elif mean.size > 4:
+        if len(mean) < 4:
+            mean = np.pad(mean, (0, 4 - len(mean)), mode = 'constant')
+        elif len(mean) > 4:
             mean = mean[:4]
     elif mean is None:
         mean = np.full(4, 0)
@@ -354,9 +353,9 @@ def awgn_dwt(img, mean, std, seed):
     if np.isscalar(std):
         std = np.full(4, std)
     elif isinstance(std, (list, np.ndarray)):
-        if std.size < 4:
-            std = np.pad(std, (0, 4 - std.size), mode = 'constant')
-        elif std.size > 4:
+        if len(std) < 4:
+            std = np.pad(std, (0, 4 - len(std)), mode = 'constant')
+        elif len(std) > 4:
             std = std[:4]
     elif std is None:
         std = np.full(4, 0)
@@ -378,9 +377,9 @@ def jpeg_dwt(img, qf):
     if np.isscalar(qf):
         qf = np.full(4, qf)
     elif isinstance(qf, (list, np.ndarray)):
-        if qf.size < 4:
-            qf = np.pad(qf, (100, 4 - qf.size), mode = 'constant')
-        elif qf.size > 4:
+        if len(qf) < 4:
+            qf = np.pad(qf, (100, 4 - len(qf)), mode = 'constant')
+        elif len(qf) > 4:
             qf = qf[:4]
     elif qf is None:
         qf = np.full(4, 100)
@@ -402,9 +401,9 @@ def resize_dwt(img, scale):
     if np.isscalar(scale):
         scale = np.full(4, scale)
     elif isinstance(scale, (list, np.ndarray)):
-        if scale.size < 4:
-            scale = np.pad(scale, (1, 4 - scale.size), mode = 'constant')
-        elif scale.size > 4:
+        if len(scale) < 4:
+            scale = np.pad(scale, (1, 4 - len(scale)), mode = 'constant')
+        elif len(scale) > 4:
             scale = scale[:4]
     elif scale is None:
         scale = np.full(4, 1)
@@ -427,9 +426,9 @@ def gauss_edge_dwt(img, sigma, edge_func):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -451,9 +450,9 @@ def median_edge_dwt(img, size, edge_func):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -476,9 +475,9 @@ def gauss_flat_dwt(img, sigma, edge_func):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -500,9 +499,9 @@ def median_flat_dwt(img, size, edge_func):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -524,9 +523,9 @@ def awgn_edge_dwt(img, mean, std, seed, edge_func):
     if np.isscalar(mean):
         mean = np.full(4, mean)
     elif isinstance(mean, (list, np.ndarray)):
-        if mean.size < 4:
-            mean = np.pad(mean, (0, 4 - mean.size), mode = 'constant')
-        elif mean.size > 4:
+        if len(mean) < 4:
+            mean = np.pad(mean, (0, 4 - len(mean)), mode = 'constant')
+        elif len(mean) > 4:
             mean = mean[:4]
     elif mean is None:
         mean = np.full(4, 0)
@@ -534,9 +533,9 @@ def awgn_edge_dwt(img, mean, std, seed, edge_func):
     if np.isscalar(std):
         std = np.full(4, std)
     elif isinstance(std, (list, np.ndarray)):
-        if std.size < 4:
-            std = np.pad(std, (0, 4 - std.size), mode = 'constant')
-        elif std.size > 4:
+        if len(std) < 4:
+            std = np.pad(std, (0, 4 - len(std)), mode = 'constant')
+        elif len(std) > 4:
             std = std[:4]
     elif std is None:
         std = np.full(4, 0)
@@ -558,9 +557,9 @@ def resize_jpeg_dwt(img, qf, scale):
     if np.isscalar(qf):
         qf = np.full(4, qf)
     elif isinstance(qf, (list, np.ndarray)):
-        if qf.size < 4:
-            qf = np.pad(qf, (100, 4 - qf.size), mode = 'constant')
-        elif qf.size > 4:
+        if len(qf) < 4:
+            qf = np.pad(qf, (100, 4 - len(qf)), mode = 'constant')
+        elif len(qf) > 4:
             qf = qf[:4]
     elif qf is None:
         qf = np.full(4, 100)
@@ -568,9 +567,9 @@ def resize_jpeg_dwt(img, qf, scale):
     if np.isscalar(scale):
         scale = np.full(4, scale)
     elif isinstance(scale, (list, np.ndarray)):
-        if scale.size < 4:
-            scale = np.pad(scale, (1, 4 - scale.size), mode = 'constant')
-        elif scale.size > 4:
+        if len(scale) < 4:
+            scale = np.pad(scale, (1, 4 - len(scale)), mode = 'constant')
+        elif len(scale) > 4:
             scale = scale[:4]
     elif scale is None:
         scale = np.full(4, 1)
@@ -592,9 +591,9 @@ def gauss_jpeg_dwt(img, qf, sigma):
     if np.isscalar(qf):
         qf = np.full(4, qf)
     elif isinstance(qf, (list, np.ndarray)):
-        if qf.size < 4:
-            qf = np.pad(qf, (100, 4 - qf.size), mode = 'constant')
-        elif qf.size > 4:
+        if len(qf) < 4:
+            qf = np.pad(qf, (100, 4 - len(qf)), mode = 'constant')
+        elif len(qf) > 4:
             qf = qf[:4]
     elif qf is None:
         qf = np.full(4, 100)
@@ -603,9 +602,9 @@ def gauss_jpeg_dwt(img, qf, sigma):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -627,9 +626,9 @@ def median_jpeg_dwt(img, qf, size):
     if np.isscalar(qf):
         qf = np.full(4, qf)
     elif isinstance(qf, (list, np.ndarray)):
-        if qf.size < 4:
-            qf = np.pad(qf, (100, 4 - qf.size), mode = 'constant')
-        elif qf.size > 4:
+        if len(qf) < 4:
+            qf = np.pad(qf, (100, 4 - len(qf)), mode = 'constant')
+        elif len(qf) > 4:
             qf = qf[:4]
     elif qf is None:
         qf = np.full(4, 100)
@@ -637,9 +636,9 @@ def median_jpeg_dwt(img, qf, size):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -661,9 +660,9 @@ def gauss_awgn_dwt(img, mean, std, seed, sigma):
     if np.isscalar(mean):
         mean = np.full(4, mean)
     elif isinstance(mean, (list, np.ndarray)):
-        if mean.size < 4:
-            mean = np.pad(mean, (0, 4 - mean.size), mode = 'constant')
-        elif mean.size > 4:
+        if len(mean) < 4:
+            mean = np.pad(mean, (0, 4 - len(mean)), mode = 'constant')
+        elif len(mean) > 4:
             mean = mean[:4]
     elif mean is None:
         mean = np.full(4, 0)
@@ -671,9 +670,9 @@ def gauss_awgn_dwt(img, mean, std, seed, sigma):
     if np.isscalar(std):
         std = np.full(4, std)
     elif isinstance(std, (list, np.ndarray)):
-        if std.size < 4:
-            std = np.pad(std, (0, 4 - std.size), mode = 'constant')
-        elif std.size > 4:
+        if len(std) < 4:
+            std = np.pad(std, (0, 4 - len(std)), mode = 'constant')
+        elif len(std) > 4:
             std = std[:4]
     elif std is None:
         std = np.full(4, 0)
@@ -682,9 +681,9 @@ def gauss_awgn_dwt(img, mean, std, seed, sigma):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -706,9 +705,9 @@ def median_awgn_dwt(img, mean, std, seed, size):
     if np.isscalar(mean):
         mean = np.full(4, mean)
     elif isinstance(mean, (list, np.ndarray)):
-        if mean.size < 4:
-            mean = np.pad(mean, (0, 4 - mean.size), mode = 'constant')
-        elif mean.size > 4:
+        if len(mean) < 4:
+            mean = np.pad(mean, (0, 4 - len(mean)), mode = 'constant')
+        elif len(mean) > 4:
             mean = mean[:4]
     elif mean is None:
         mean = np.full(4, 0)
@@ -716,9 +715,9 @@ def median_awgn_dwt(img, mean, std, seed, size):
     if np.isscalar(std):
         std = np.full(4, std)
     elif isinstance(std, (list, np.ndarray)):
-        if std.size < 4:
-            std = np.pad(std, (0, 4 - std.size), mode = 'constant')
-        elif std.size > 4:
+        if len(std) < 4:
+            std = np.pad(std, (0, 4 - len(std)), mode = 'constant')
+        elif len(std) > 4:
             std = std[:4]
     elif std is None:
         std = np.full(4, 0)
@@ -726,9 +725,9 @@ def median_awgn_dwt(img, mean, std, seed, size):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -750,9 +749,9 @@ def jpeg_awgn_dwt(img, mean, std, seed, qf):
     if np.isscalar(mean):
         mean = np.full(4, mean)
     elif isinstance(mean, (list, np.ndarray)):
-        if mean.size < 4:
-            mean = np.pad(mean, (0, 4 - mean.size), mode = 'constant')
-        elif mean.size > 4:
+        if len(mean) < 4:
+            mean = np.pad(mean, (0, 4 - len(mean)), mode = 'constant')
+        elif len(mean) > 4:
             mean = mean[:4]
     elif mean is None:
         mean = np.full(4, 0)
@@ -760,9 +759,9 @@ def jpeg_awgn_dwt(img, mean, std, seed, qf):
     if np.isscalar(std):
         std = np.full(4, std)
     elif isinstance(std, (list, np.ndarray)):
-        if std.size < 4:
-            std = np.pad(std, (0, 4 - std.size), mode = 'constant')
-        elif std.size > 4:
+        if len(std) < 4:
+            std = np.pad(std, (0, 4 - len(std)), mode = 'constant')
+        elif len(std) > 4:
             std = std[:4]
     elif std is None:
         std = np.full(4, 0)
@@ -770,9 +769,9 @@ def jpeg_awgn_dwt(img, mean, std, seed, qf):
     if np.isscalar(qf):
         qf = np.full(4, qf)
     elif isinstance(qf, (list, np.ndarray)):
-        if qf.size < 4:
-            qf = np.pad(qf, (100, 4 - qf.size), mode = 'constant')
-        elif qf.size > 4:
+        if len(qf) < 4:
+            qf = np.pad(qf, (100, 4 - len(qf)), mode = 'constant')
+        elif len(qf) > 4:
             qf = qf[:4]
     elif qf is None:
         qf = np.full(4, 100)
@@ -795,9 +794,9 @@ def sharp_gauss_dwt(img, sigma, alpha):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -806,9 +805,9 @@ def sharp_gauss_dwt(img, sigma, alpha):
         alpha = np.full(4, alpha)
     elif isinstance(alpha, (list, np.ndarray)):
         alpha = np.array(alpha)
-        if alpha.size < 4:
-            alpha = np.pad(alpha, (0, 4 - alpha.size), mode = 'constant')
-        elif alpha.size > 4:
+        if len(alpha) < 4:
+            alpha = np.pad(alpha, (0, 4 - len(alpha)), mode = 'constant')
+        elif len(alpha) > 4:
             alpha = alpha[:4]
     elif alpha is None:
         alpha = np.full(4, 0)
@@ -830,9 +829,9 @@ def sharp_median_dwt(img, size, sigma, alpha):
     if np.isscalar(size):
         size = np.full(4, size)
     elif isinstance(size, (list, np.ndarray)):
-        if size.size < 4:
-            size = np.pad(size, (1, 4 - size.size), mode = 'constant')
-        elif size.size > 4:
+        if len(size) < 4:
+            size = np.pad(size, (1, 4 - len(size)), mode = 'constant')
+        elif len(size) > 4:
             size = size[:4]
     elif size is None:
         size = np.full(4, 1)
@@ -841,9 +840,9 @@ def sharp_median_dwt(img, size, sigma, alpha):
         sigma = np.full(4, sigma)
     elif isinstance(sigma, (list, np.ndarray)):
         sigma = np.array(sigma)
-        if sigma.size < 4:
-            sigma = np.pad(sigma, (0, 4 - sigma.size), mode = 'constant')
-        elif sigma.size > 4:
+        if len(sigma) < 4:
+            sigma = np.pad(sigma, (0, 4 - len(sigma)), mode = 'constant')
+        elif len(sigma) > 4:
             sigma = sigma[:4]
     elif sigma is None:
         sigma = np.full(4, 0)
@@ -852,9 +851,9 @@ def sharp_median_dwt(img, size, sigma, alpha):
         alpha = np.full(4, alpha)
     elif isinstance(alpha, (list, np.ndarray)):
         alpha = np.array(alpha)
-        if alpha.size < 4:
-            alpha = np.pad(alpha, (0, 4 - alpha.size), mode = 'constant')
-        elif alpha.size > 4:
+        if len(alpha) < 4:
+            alpha = np.pad(alpha, (0, 4 - len(alpha)), mode = 'constant')
+        elif len(alpha) > 4:
             alpha = alpha[:4]
     elif alpha is None:
         alpha = np.full(4, 0)
