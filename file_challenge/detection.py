@@ -162,7 +162,7 @@ def detection(original_path, watermarked_path, attacked_path):
     
     quality = wpsnr(watermarked, attacked)
     
-    if sim >= thr and quality >= 25:
+    if sim >= thr:
         return 1, quality
     
     return 0, quality
