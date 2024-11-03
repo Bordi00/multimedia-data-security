@@ -56,8 +56,8 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
             attack_name = ''
             while param <= attack_fn['end']:
                 attacked,attack_name,usd = attack_fn['function'](wm, param)
-                detected = detection_fn(images[i], wm,attacked, alpha, max_layer)
-                wpsnr_attacked = wpsnr(wm, attacked)
+                detected,q = detection_fn(images[i], wm,attacked, alpha, max_layer)
+                wpsnr_attacked = q
                 progress_bar.set_postfix({"image":i,"attack":attack_name , "wpsnr": wpsnr_attacked,"detected":detected,"param":usd})
                 #utility.visualize_images_with_desc([images[i], wm, attacked], ['Original', 'Watermarked', 'Attacked'])
                 param += attack_fn['increment_params']
@@ -90,3 +90,43 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
     print("estimate points for invisibility + robusteness ", invisibility,robustenss," total points =",invisibility+robustenss)
 
     return total_history,total_succesfull,(invisibility,robustenss)
+
+
+
+
+def watermarked_images(alpha,max_layer,num_images,embedding_fn=embedding.embedding,embedding_mask=2):
+
+    '''
+    total_history,total_succesfull_attacks,points =  utility.test_pipelines(
+        alpha =0.48, 
+        max_layer=1, 
+        num_images=2,
+        embedding_fn=embedding.embedding,
+        attacks_list=attacks.attack_incremental_paramters,
+        detection_fn=detection.detection)
+    '''
+    img_folder = 'sample_imgs'
+    img_files =  [f for f in os.listdir(img_folder) if f.endswith(('.bmp'))]
+    img_files = random.sample(img_files, num_images)
+    images = []
+    for file in img_files:
+        img_path = os.path.join(img_folder, file)
+        images.append(cv2.imread(img_path, 0))
+    images = np.array(images) # optional
+    visualize_images_with_desc(images, ['Original']*len(images))
+    mark = np.load('ammhackati.npy')
+
+
+    history_w = []    
+    watermarked = []
+    wpsnr_value = 0
+    for img in images:
+        watermarked.append(embedding_fn(img, mark, alpha,max_layer=max_layer,mask_type=embedding_mask))
+    for i,img in enumerate(watermarked):
+        history_w.append(wpsnr(img, images[i]))
+        wpsnr_value += wpsnr(img, images[i])
+    visualize_images_with_desc(watermarked, history_w)
+        
+    print("meanw psnr after embedding ", wpsnr_value/len(watermarked))
+    invisibility = invisibility_point(wpsnr_value/len(watermarked))
+    return watermarked,images,invisibility
