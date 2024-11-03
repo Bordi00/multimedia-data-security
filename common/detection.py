@@ -142,10 +142,8 @@ def detect_wm(image, watermarked, alpha, max_layer=2, mask_type=2, v='multiplica
 
     return w_ex
 
-def detection(original, watermarked, attacked):
-    alpha=0.5
-    max_layer=2 
-    mask_type=2
+def detection(original, watermarked, attacked, alpha, max_layer, mask_type=2):
+
     ex_mark = detect_wm(original, watermarked, alpha, max_layer=max_layer, mask_type=mask_type)
     ex_attacked = detect_wm(original, attacked, alpha, max_layer=max_layer, mask_type=mask_type)
     thr = 0.7
@@ -157,7 +155,7 @@ def detection(original, watermarked, attacked):
     
     quality = wpsnr(watermarked, attacked)
     
-    if sim >= thr and quality >= 25:
+    if sim >= thr:
         return 1, quality
     
     return 0, quality
