@@ -132,7 +132,7 @@ def invisibility_point(avg):
     elif avg >= 54:
         points = 3
     elif avg >= 50:
-        points = 4
+        points = 2
     elif avg >= 35:
         points = 1
     else:

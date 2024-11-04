@@ -38,14 +38,16 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
             images.append(cv2.imread(path)) 
         
     if wm_list is None:
-        history = []    
+        history = []  
+        wpsn_show = [] 
         watermarked = []
         wpsnr_value = 0
         for img in images:
             watermarked.append(embedding_fn(img, mark, alpha,max_layer=max_layer,mask_type=embedding_mask))
         for i,img in enumerate(watermarked):
+            wpsn_show.append(wpsnr(img, images[i]))
             wpsnr_value += wpsnr(img, images[i])
-            
+        visualize_images_with_desc(watermarked, wpsn_show)
         print("meanw psnr after embedding ", wpsnr_value/len(watermarked))
         invisibility = invisibility_point(wpsnr_value/len(watermarked))
     else:
@@ -103,7 +105,7 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
 
 
 
-def watermarked_images(alpha,max_layer,num_images,embedding_fn=embedding.embedding,embedding_mask=2):
+def watermarked_images(alpha,max_layer,num_images,embedding_fn=embedding.embedding,embedding_mask=2,img_folder="challenge_imgs"):
 
     '''
     total_history,total_succesfull_attacks,points =  utility.test_pipelines(
@@ -114,7 +116,7 @@ def watermarked_images(alpha,max_layer,num_images,embedding_fn=embedding.embeddi
         attacks_list=attacks.attack_incremental_paramters,
         detection_fn=detection.detection)
     '''
-    img_folder = 'sample_imgs'
+    img_folder = img_folder
     img_files =  [f for f in os.listdir(img_folder) if f.endswith(('.bmp'))]
     img_files = random.sample(img_files, num_images)
     images = []
