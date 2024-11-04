@@ -50,7 +50,8 @@ def test_pipelines(alpha,max_layer,num_images,embedding_fn=embedding.embedding,d
         invisibility = invisibility_point(wpsnr_value/len(watermarked))
     else:
         watermarked = wm_list
-        images = img_list
+        for path in img_list_path:
+            images.append(cv2.imread(path)) 
     total_history = []
     total_succesfull = []
     for i,wm in enumerate(watermarked):
