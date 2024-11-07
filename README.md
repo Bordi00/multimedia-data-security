@@ -1,5 +1,5 @@
 # Multimedia Data Security 2024 - University of Trento
-> This is the repository for the code used during the Capture the Mark Challenge 2024 of the MDS course held by the Professor G. Boato
+> This is the repository for the code used during the Capture the Mark Challenge 2024 of the MDS course held by the Professor G. Boato <br/>
 > Mark: 30/30
 
 ## Authors
